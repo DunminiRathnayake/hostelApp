@@ -11,8 +11,6 @@ Built strictly following layered architectural principles with a React Native fr
 2. [Tech Stack](#2-tech-stack)
 3. [Architecture](#3-architecture)
 4. [Installation & Setup](#4-installation--setup)
-5. [Group Contributors](#5-group-contributors)
-
 ---
 
 ## 1. Core Features
