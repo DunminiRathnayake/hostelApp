@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hostel Entry Scanner</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --primary: #8b5cf6;
+      --success: #10b981;
+      --error: #ef4444;
+      --text: #f8fafc;
+    }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    header {
+      text-align: center;
+      padding: 30px 20px;
+    }
+    h1 {
+      margin: 0 0 10px 0;
+      color: var(--primary);
+      font-size: 2.5rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+    .scanner-container {
+      background: var(--card);
+      padding: 20px;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      width: 90%;
+      max-width: 500px;
+    }
+    #reader {
+      width: 100%;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 2px solid #334155;
+    }
+    .result-card {
+      margin-top: 20px;
+      padding: 20px;
+      border-radius: 15px;
+      text-align: center;
+      display: none;
+      animation: slideUp 0.3s ease-out;
+    }
+    .result-card.success {
+      background: rgba(16, 185, 129, 0.2);
+      border: 2px solid var(--success);
+    }
+    .result-card.error {
+      background: rgba(239, 68, 68, 0.2);
+      border: 2px solid var(--error);
+    }
+    .result-title { font-size: 1.5rem; font-weight: bold; margin-bottom: 10px; }
+    .result-name { font-size: 1.2rem; margin-bottom: 5px; color: #fff; }
+    .result-msg { color: #cbd5e1; }
+    button {
+      margin-top: 15px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      font-weight: bold;
+      transition: transform 0.1s;
+    }
+    button:active { transform: scale(0.95); }
+    
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    
+    /* Overriding default html5-qrcode styles */
+    #reader__dashboard_section_csr button {
+      background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer;
+    }
+    #reader__dashboard_section_swaplink { color: var(--primary); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Scanner Station</h1>
+    <p>Scan student QR codes to log Check-In / Check-Out</p>
+  </header>
+
+  <div class="scanner-container">
+    <div id="reader"></div>
+
+    <div id="result" class="result-card">
+      <div id="resIcon" style="font-size: 3rem; margin-bottom: 10px;">✅</div>
+      <div id="resTitle" class="result-title">Checked In</div>
+      <div id="resName" class="result-name">Student Name</div>
+      <div id="resMsg" class="result-msg">Recorded successfully.</div>
+      <button onclick="resumeScanning()">Scan Next</button>
+    </div>
+  </div>
+
+  <script>
+    let html5QrcodeScanner;
+    let isProcessing = false;
+    let wardenToken = null;
+
+    // Login logic for web scanner
+    async function loginScanner() {
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: 'warden@hostel.com', password: 'warden123' })
+        });
+        const data = await res.json();
+        if (data.token) {
+          wardenToken = data.token;
+          startScanner();
+        } else {
+          alert('Failed to authenticate scanner. Is the server running?');
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function startScanner() {
+      html5QrcodeScanner = new Html5QrcodeScanner("reader", { 
+        fps: 10, 
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0
+      }, false);
+      html5QrcodeScanner.render(onScanSuccess);
+    }
+
+    async function onScanSuccess(decodedText) {
+      if (isProcessing) return;
+      isProcessing = true;
+      html5QrcodeScanner.pause(true);
+
+      // Extract token if it's JSON
+      let token = decodedText;
+      try {
+        const parsed = JSON.parse(decodedText);
+        if (parsed.token) token = parsed.token;
+      } catch (e) {}
+
+      document.getElementById('reader').style.display = 'none';
+      const resultCard = document.getElementById('result');
+      
+      try {
+        const res = await fetch('/api/checkin/scan', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${wardenToken}`
+          },
+          body: JSON.stringify({ token })
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+          const type = data.message.toLowerCase().includes('check-out') ? 'OUT' : 'IN';
+          showResult(true, `CHECKED ${type}`, data.log?.user?.name || data.log?.studentName, data.message);
+        } else {
+          showResult(false, 'INVALID QR', '', data.message || 'Verification failed');
+        }
+      } catch (err) {
+        showResult(false, 'NETWORK ERROR', '', 'Failed to connect to server.');
+      }
+    }
+
+    function showResult(isSuccess, title, name, msg) {
+      const card = document.getElementById('result');
+      card.style.display = 'block';
+      card.className = `result-card ${isSuccess ? 'success' : 'error'}`;
+      
+      document.getElementById('resIcon').innerText = isSuccess ? '✅' : '❌';
+      document.getElementById('resTitle').innerText = title;
+      document.getElementById('resName').innerText = name || '';
+      document.getElementById('resMsg').innerText = msg;
+      
+      // Beep sound
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioCtx.createOscillator();
+      oscillator.type = isSuccess ? 'sine' : 'square';
+      oscillator.frequency.setValueAtTime(isSuccess ? 800 : 300, audioCtx.currentTime);
+      oscillator.connect(audioCtx.destination);
+      oscillator.start();
+      oscillator.stop(audioCtx.currentTime + 0.1);
+    }
+
+    function resumeScanning() {
+      document.getElementById('result').style.display = 'none';
+      document.getElementById('reader').style.display = 'block';
+      html5QrcodeScanner.resume();
+      setTimeout(() => { isProcessing = false; }, 1000);
+    }
+
+    // Auto-login on load
+    loginScanner();
+  </script>
+</body>
+</html>
