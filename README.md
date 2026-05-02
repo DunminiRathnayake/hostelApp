@@ -79,13 +79,3 @@ Use your phone's camera (iOS) or the Expo Go app (Android) to scan the QR code g
 
 ---
 
-## 5. Group Contributors
-
-| Student ID | Student Name | Contribution | Percentage |
-| :--- | :--- | :--- | :--- |
-| **IT24103897** | **Rathnayake R.M.D.H.K.** | **Visitor Management & Core Architecture** – Implemented the complete visitor registration and approval workflow. Designed the overall system architecture, database structure, JWT authentication, API gateway, data validation, and core integrations across all modules. | **25%** |
-| IT24104163 | Manathunga M.M.N.L | **Check-in / Check-out Management** – Developed student hostel entry and exit tracking, validation, and record management. | 15% |
-| IT24103915 | Guruge O.L. | **Payment Management** – Built payment submission, tracking, and verification functionalities. | 15% |
-| IT24102154 | Wijesinghe A.P.R.G.L | **Boarder Management** – Managed student boarder registration, profile handling, and hostel records. | 15% |
-| IT23219434 | Hettiarachchi M.H.A.I. | **Room Allocation & Cleaning Management** – Developed room assignment logic, cleaning schedules, and maintenance workflows. | 15% |
-| IT24100463 | Gunasekara H.Y | **Feedback / Complaint / Rating Management** – Implemented complaint handling, review submissions, and rating features. | 15% |
