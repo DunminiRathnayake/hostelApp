@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, FlatList, SafeAreaView, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, FlatList, SafeAreaView, ActivityIndicator, Alert, TouchableOpacity } from "react-native";
 import API from "../services/api";
 import { colors, T } from "../theme";
 import { Ionicons } from "@expo/vector-icons";
@@ -31,6 +31,30 @@ export default function WardenAttendanceScreen() {
     }
   };
 
+  const deleteLog = async (id) => {
+    Alert.alert(
+      "Confirm Delete",
+      "Are you sure you want to delete this check-in record?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await API.delete(`/checkin/${id}`);
+              Alert.alert("Success", "Record deleted");
+              fetchLogs(true);
+            } catch (err) {
+              const errorMsg = err.response?.data?.message || "Could not delete record.";
+              Alert.alert("Error", errorMsg);
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const formatTime = (dateString) => {
     if (!dateString) return "--:--";
     return new Date(dateString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -43,11 +67,16 @@ export default function WardenAttendanceScreen() {
       <View style={[T.card, T.cardShadow, styles.card, isLate && styles.cardLate]}>
         <View style={styles.cardHeader}>
           <Text style={styles.studentName} numberOfLines={1}>{item.studentId?.name || item.studentId?.fullName || "Student"}</Text>
-          <View style={[styles.badge, isLate ? styles.badgeLate : styles.badgeOnTime]}>
-            <Ionicons name={isLate ? "warning" : "checkmark-circle"} size={12} color={isLate ? colors.error : colors.success} style={{marginRight: 4}} />
-            <Text style={[styles.badgeText, { color: isLate ? colors.error : colors.success }]}>
-              {isLate ? "LATE" : "ON TIME"}
-            </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={[styles.badge, isLate ? styles.badgeLate : styles.badgeOnTime]}>
+              <Ionicons name={isLate ? "warning" : "checkmark-circle"} size={12} color={isLate ? colors.error : colors.success} style={{marginRight: 4}} />
+              <Text style={[styles.badgeText, { color: isLate ? colors.error : colors.success }]}>
+                {isLate ? "LATE" : "ON TIME"}
+              </Text>
+            </View>
+            <TouchableOpacity onPress={() => deleteLog(item._id)} style={{ marginLeft: 10, padding: 4 }}>
+              <Ionicons name="trash-outline" size={20} color={colors.error} />
+            </TouchableOpacity>
           </View>
         </View>
 

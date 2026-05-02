@@ -5,7 +5,8 @@ import {
   getStudentCleaning,
   updateCleaningStatus,
   getSchedule,
-  updateSchedule
+  updateSchedule,
+  deleteCleaningTask
 } from '../controllers/cleaningController.js';
 import { protect, authorizeRoles } from '../middleware/authMiddleware.js';
 
@@ -21,7 +22,9 @@ router.get('/tasks-formatted', protect, authorizeRoles('warden'), getCleaningsFo
 router.get('/student-tasks', protect, authorizeRoles('student', 'warden'), getStudentCleaning);
 
 // 4. PUT /api/cleaning/tasks/:id - Mark task as completed
-router.put('/tasks/:id', protect, updateCleaningStatus);
+router.route('/tasks/:id')
+  .put(protect, updateCleaningStatus)
+  .delete(protect, authorizeRoles('warden', 'admin'), deleteCleaningTask);
 
 // 5. GET /api/cleaning/schedule - Return weekly schedule
 router.get('/schedule', protect, authorizeRoles('warden'), getSchedule);

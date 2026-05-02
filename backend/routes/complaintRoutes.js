@@ -3,7 +3,8 @@ import {
   createComplaint,
   getMyComplaints,
   getComplaints,
-  updateComplaintStatus
+  updateComplaintStatus,
+  deleteComplaint
 } from '../controllers/complaintController.js';
 import { protect, authorizeRoles } from '../middleware/authMiddleware.js';
 import { validate } from '../middleware/validate.js';
@@ -20,5 +21,8 @@ router.route('/my-complaints')
 
 router.route('/:id/status')
   .put(protect, authorizeRoles('warden'), validate(updateComplaintStatusSchema), updateComplaintStatus);
+
+router.route('/:id')
+  .delete(protect, authorizeRoles('admin'), deleteComplaint);
 
 export default router;

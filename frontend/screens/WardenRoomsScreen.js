@@ -96,6 +96,29 @@ export default function WardenRoomsScreen() {
     }
   };
 
+  const handleDeleteRoom = async (roomId) => {
+    Alert.alert(
+      "Confirm Delete",
+      "Are you sure you want to delete this room? This cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await API.delete(`/rooms/${roomId}`);
+              Alert.alert("Success", "Room deleted successfully");
+              fetchData();
+            } catch (err) {
+              Alert.alert("Error", err.response?.data?.message || "Failed to delete room");
+            }
+          }
+        }
+      ]
+    );
+  };
+
   return (
     <SafeAreaView style={[T.screen, styles.safeArea]}>
       <ScrollView
@@ -170,10 +193,15 @@ export default function WardenRoomsScreen() {
                   {/* Top Bar */}
                   <View style={styles.cardHeader}>
                     <Text style={styles.roomCardTitle}>Room {room.roomNumber}</Text>
-                    <View style={[styles.statusBadge, isFull ? styles.statusBadgeFull : styles.statusBadgeAvail]}>
-                      <Text style={[styles.statusBadgeText, isFull ? styles.statusBadgeTextFull : styles.statusBadgeTextAvail]}>
-                        {isFull ? "Occupied" : `Available (${slotsAvailable} Slot${slotsAvailable !== 1 ? 's' : ''})`}
-                      </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <View style={[styles.statusBadge, isFull ? styles.statusBadgeFull : styles.statusBadgeAvail]}>
+                        <Text style={[styles.statusBadgeText, isFull ? styles.statusBadgeTextFull : styles.statusBadgeTextAvail]}>
+                          {isFull ? "Occupied" : `Available (${slotsAvailable} Slot${slotsAvailable !== 1 ? 's' : ''})`}
+                        </Text>
+                      </View>
+                      <TouchableOpacity onPress={() => handleDeleteRoom(room._id)} style={{ marginLeft: 10, padding: 4 }}>
+                        <Ionicons name="trash-outline" size={20} color={colors.error} />
+                      </TouchableOpacity>
                     </View>
                   </View>
 
@@ -225,14 +253,16 @@ export default function WardenRoomsScreen() {
                     </TouchableOpacity>
                   </View>
 
-                  {/* Edit Settings */}
-                  <TouchableOpacity 
-                    style={styles.editBtn}
-                    onPress={() => router.push({ pathname: "/(app)/warden-room-details", params: { roomId: room._id } })}
-                  >
-                    <Ionicons name="pencil" size={14} color={colors.primary} style={{ marginRight: 6 }} />
-                    <Text style={styles.editBtnText}>Edit Room Settings</Text>
-                  </TouchableOpacity>
+                  {/* Actions */}
+                  <View style={styles.actionRow}>
+                    <TouchableOpacity 
+                      style={[styles.editBtn, { flex: 1 }]}
+                      onPress={() => router.push({ pathname: "/(app)/warden-room-details", params: { roomId: room._id } })}
+                    >
+                      <Ionicons name="pencil" size={14} color={colors.primary} style={{ marginRight: 6 }} />
+                      <Text style={styles.editBtnText}>Edit Details</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               );
             })}
@@ -338,7 +368,10 @@ const styles = StyleSheet.create({
   assignSelectorDisabled: { backgroundColor: colors.bg, opacity: 0.6 },
   assignSelectorText: { fontSize: 14, color: colors.textPrimary },
 
-  editBtn: { flexDirection: "row", justifyContent: "center", alignItems: "center", borderWidth: 1, borderColor: colors.cardBorder, backgroundColor: colors.card, borderRadius: 8, paddingVertical: 12, marginTop: 4 },
+  assignSelectorText: { fontSize: 14, color: colors.textPrimary },
+
+  actionRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 4 },
+  editBtn: { flexDirection: "row", justifyContent: "center", alignItems: "center", borderWidth: 1, borderColor: colors.cardBorder, backgroundColor: colors.card, borderRadius: 8, paddingVertical: 12 },
   editBtnText: { color: colors.textPrimary, fontWeight: "bold", fontSize: 14 },
 
   // Modal

@@ -2,7 +2,8 @@ import express from 'express';
 import {
   submitFeedback,
   getFeedback,
-  deleteFeedback
+  deleteFeedback,
+  updateFeedback
 } from '../controllers/feedbackController.js';
 import { protect, wardenOnly } from '../middleware/authMiddleware.js';
 import { validate } from '../middleware/validate.js';
@@ -16,6 +17,7 @@ router.route('/')
   .get(protect, getFeedback);
 
 router.route('/:id')
+  .put(protect, updateFeedback)
   .delete(protect, wardenOnly, deleteFeedback);
 
 export default router;

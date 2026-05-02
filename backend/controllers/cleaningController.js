@@ -230,3 +230,19 @@ export const updateSchedule = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// @desc    Delete a cleaning task
+// @route   DELETE /api/cleaning/tasks/:id
+// @access  Private (Warden/Admin)
+export const deleteCleaningTask = async (req, res) => {
+  try {
+    const task = await Cleaning.findOne({ _id: req.params.id, type: 'task' });
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+    await task.deleteOne();
+    res.json({ message: 'Cleaning task deleted' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

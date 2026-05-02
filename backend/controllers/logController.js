@@ -125,3 +125,41 @@ export const getLogs = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// @desc    Update a log
+// @route   PUT /api/logs/:id
+// @access  Private/Warden
+export const updateLog = async (req, res) => {
+  try {
+    const log = await Log.findById(req.params.id);
+    if (!log) {
+      return res.status(404).json({ message: 'Log not found' });
+    }
+    
+    // Only update allowed fields manually
+    if (req.body.type) log.type = req.body.type;
+    if (req.body.isLate !== undefined) log.isLate = req.body.isLate;
+    
+    const updatedLog = await log.save();
+    res.json(updatedLog);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Delete a log
+// @route   DELETE /api/logs/:id
+// @access  Private/Admin
+export const deleteLog = async (req, res) => {
+  try {
+    const log = await Log.findById(req.params.id);
+    if (!log) {
+      return res.status(404).json({ message: 'Log not found' });
+    }
+    
+    await log.deleteOne();
+    res.json({ message: 'Log removed' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

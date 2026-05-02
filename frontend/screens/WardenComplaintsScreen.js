@@ -29,8 +29,32 @@ export default function WardenComplaintsScreen() {
       Alert.alert("Success", "Complaint marked as resolved");
       fetchComplaints();
     } catch (err) {
-      Alert.alert("Error", "Could not update status.");
+      const errorMsg = err.response?.data?.errors?.join("\n") || err.response?.data?.message || "Could not update status.";
+      Alert.alert("Error", errorMsg);
     }
+  };
+
+  const deleteComplaint = async (id) => {
+    Alert.alert(
+      "Confirm Delete",
+      "Are you sure you want to delete this complaint?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await API.delete(`/complaints/${id}`);
+              Alert.alert("Success", "Complaint deleted");
+              fetchComplaints();
+            } catch (err) {
+              Alert.alert("Error", "Could not delete complaint.");
+            }
+          }
+        }
+      ]
+    );
   };
 
   const renderItem = ({ item }) => {
@@ -41,10 +65,15 @@ export default function WardenComplaintsScreen() {
       <View style={[T.card, T.cardShadow, styles.card]}>
         <View style={styles.cardHeader}>
           <Text style={styles.title} numberOfLines={1}>{item.title}</Text>
-          <View style={[badge]}>
-            <Text style={[text]}>
-              {(item.status || "PENDING").toUpperCase()}
-            </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={[badge]}>
+              <Text style={[text]}>
+                {(item.status || "PENDING").toUpperCase()}
+              </Text>
+            </View>
+            <TouchableOpacity onPress={() => deleteComplaint(item._id)} style={{ marginLeft: 10, padding: 4 }}>
+              <Ionicons name="trash-outline" size={20} color={colors.error} />
+            </TouchableOpacity>
           </View>
         </View>
         <Text style={styles.studentName}>By: {item.studentId?.name || "Unknown Student"}</Text>

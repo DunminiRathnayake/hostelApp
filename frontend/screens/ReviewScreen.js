@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, Alert, SafeAreaView, ActivityIndicator } from "react-native";
 import API from "../services/api";
+import { AuthContext } from "../context/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, T } from "../theme";
 
@@ -10,6 +11,7 @@ export default function ReviewScreen() {
   const [comment, setComment] = useState("");
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user } = useContext(AuthContext);
 
   useEffect(() => {
     fetchReviews();
@@ -42,6 +44,29 @@ export default function ReviewScreen() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const deleteReview = async (id) => {
+    Alert.alert(
+      "Confirm Delete",
+      "Are you sure you want to delete this review?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await API.delete(`/reviews/${id}`);
+              Alert.alert("Success", "Review deleted");
+              fetchReviews();
+            } catch (err) {
+              Alert.alert("Error", "Could not delete review.");
+            }
+          }
+        }
+      ]
+    );
   };
 
   const calculateAverage = () => {
@@ -133,7 +158,14 @@ export default function ReviewScreen() {
           <View style={[T.card, T.cardShadow]}>
             <View style={styles.cardHeader}>
               <Text style={styles.author}>{item.student?.name || "Student"}</Text>
-              <Text style={styles.date}>{new Date(item.createdAt).toLocaleDateString()}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={styles.date}>{new Date(item.createdAt).toLocaleDateString()}</Text>
+                {user?.role === "warden" && (
+                  <TouchableOpacity onPress={() => deleteReview(item._id)} style={{ marginLeft: 10, padding: 4 }}>
+                    <Ionicons name="trash-outline" size={18} color={colors.error} />
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
             <View style={styles.cardStars}>
               <StarDisplay score={item.rating} />

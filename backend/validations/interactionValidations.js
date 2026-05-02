@@ -26,8 +26,8 @@ export const createComplaintSchema = Joi.object({
 });
 
 export const updateComplaintStatusSchema = Joi.object({
-  status: Joi.string().valid('Pending', 'In Progress', 'Resolved').required().messages({
-    'any.only': 'Status must be Pending, In Progress, or Resolved',
+  status: Joi.string().valid('pending', 'resolved').required().messages({
+    'any.only': 'Status must be pending or resolved',
     'any.required': 'Status is required'
   })
 });

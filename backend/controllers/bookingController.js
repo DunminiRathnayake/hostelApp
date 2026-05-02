@@ -146,3 +146,21 @@ export const cancelBooking = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// @desc    Delete a booking
+// @route   DELETE /api/bookings/:id
+// @access  Private/Admin
+export const deleteBooking = async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    await booking.deleteOne();
+    res.json({ message: 'Booking removed' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

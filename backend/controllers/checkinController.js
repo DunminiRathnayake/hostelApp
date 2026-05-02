@@ -47,3 +47,21 @@ export const getMyCheckins = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// @desc    Delete a check-in log
+// @route   DELETE /api/checkin/:id
+// @access  Private (Admin/Warden)
+export const deleteCheckin = async (req, res) => {
+  try {
+    const log = await Log.findById(req.params.id);
+
+    if (!log) {
+      return res.status(404).json({ message: 'Log not found' });
+    }
+
+    await log.deleteOne();
+    res.json({ message: 'Log removed successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

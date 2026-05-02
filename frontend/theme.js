@@ -12,6 +12,7 @@ export const colors = {
   inputBorder: "#333333",
 
   primary:     "#6C63FF",
+  primaryLight: "#A7A0FF",
   primaryDark: "#5A52D5",
   primaryGlow: "rgba(108,99,255,0.18)",
 
@@ -26,6 +27,8 @@ export const colors = {
   warningBg: "rgba(245,158,11,0.12)",
   error:   "#ef4444",
   errorBg: "rgba(239,68,68,0.12)",
+  info:    "#5bc8ff",
+  infoBg:  "rgba(91,200,255,0.12)",
 };
 
 // Shared component styles

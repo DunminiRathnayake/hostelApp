@@ -33,6 +33,29 @@ export default function WardenPaymentsScreen() {
     }
   };
 
+  const deletePayment = async (id) => {
+    Alert.alert(
+      "Confirm Delete",
+      "Are you sure you want to delete this payment?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await API.delete(`/payments/${id}`);
+              Alert.alert("Success", "Payment deleted");
+              fetchPayments();
+            } catch (err) {
+              Alert.alert("Error", err.response?.data?.message || "Failed to delete payment");
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const renderItem = ({ item }) => {
     const isPending = item.status === "pending";
     const { badge, text } = getStatusBadge(item.status);
@@ -41,10 +64,15 @@ export default function WardenPaymentsScreen() {
       <View style={[T.card, T.cardShadow, styles.card]}>
         <View style={styles.cardHeader}>
           <Text style={styles.studentName} numberOfLines={1}>{item.studentName}</Text>
-          <View style={[badge]}>
-            <Text style={[text]}>
-              {(item.status || "PENDING").replace('_', ' ').toUpperCase()}
-            </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={[badge]}>
+              <Text style={[text]}>
+                {(item.status || "PENDING").replace('_', ' ').toUpperCase()}
+              </Text>
+            </View>
+            <TouchableOpacity onPress={() => deletePayment(item._id)} style={{ marginLeft: 10, padding: 4 }}>
+              <Ionicons name="trash-outline" size={20} color={colors.error} />
+            </TouchableOpacity>
           </View>
         </View>
         <Text style={styles.amount}>LKR {item.amount.toLocaleString()}</Text>

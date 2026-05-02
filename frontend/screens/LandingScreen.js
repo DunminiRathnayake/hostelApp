@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  Animated, Dimensions, StatusBar, ImageBackground
+  Animated, Dimensions, StatusBar,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -10,156 +10,356 @@ import { colors } from "../theme";
 
 const { width, height } = Dimensions.get("window");
 
+const FEATURES = [
+  { icon: "wallet-outline",    label: "Payments"   },
+  { icon: "chatbubble-outline", label: "Complaints" },
+  { icon: "qr-code-outline",   label: "QR Access"  },
+  { icon: "bed-outline",       label: "Rooms"      },
+];
+
+// Particle dots for background depth
+const PARTICLES = Array.from({ length: 18 }, (_, i) => ({
+  x: Math.random() * width,
+  y: Math.random() * height * 0.6,
+  size: Math.random() * 3 + 1,
+  delay: i * 200,
+  duration: 3000 + Math.random() * 2000,
+}));
+
+function Particle({ x, y, size, delay, duration }) {
+  const anim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.delay(delay),
+        Animated.timing(anim, { toValue: 1, duration, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 0, duration, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+  const opacity = anim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, 0.6, 0] });
+  const translateY = anim.interpolate({ inputRange: [0, 1], outputRange: [0, -20] });
+  return (
+    <Animated.View
+      style={{
+        position: "absolute", left: x, top: y,
+        width: size, height: size, borderRadius: size / 2,
+        backgroundColor: "rgba(108,99,255,0.8)",
+        opacity, transform: [{ translateY }],
+      }}
+    />
+  );
+}
+
 export default function LandingScreen() {
   const router = useRouter();
 
-  // Animations
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(40)).current;
-  const scaleAnim = useRef(new Animated.Value(0.85)).current;
-  const btnAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim   = useRef(new Animated.Value(0)).current;
+  const slideAnim  = useRef(new Animated.Value(60)).current;
+  const scaleAnim  = useRef(new Animated.Value(0.7)).current;
+  const logoGlow   = useRef(new Animated.Value(0)).current;
+  const btnAnim    = useRef(new Animated.Value(0)).current;
+  const blob1Anim  = useRef(new Animated.Value(0)).current;
+  const blob2Anim  = useRef(new Animated.Value(0)).current;
+  const blob3Anim  = useRef(new Animated.Value(0)).current;
+  const pillAnims  = FEATURES.map(() => useRef(new Animated.Value(0)).current);
+  const ringAnim   = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    // Background blob pulses
+    const makeBlobLoop = (anim, duration) =>
+      Animated.loop(Animated.sequence([
+        Animated.timing(anim, { toValue: 1, duration, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 0, duration, useNativeDriver: true }),
+      ]));
+    makeBlobLoop(blob1Anim, 3800).start();
+    makeBlobLoop(blob2Anim, 4600).start();
+    makeBlobLoop(blob3Anim, 5200).start();
+
+    // Logo glow ring pulse
+    const glowLoop = Animated.loop(Animated.sequence([
+      Animated.timing(logoGlow,  { toValue: 1,   duration: 1800, useNativeDriver: true }),
+      Animated.timing(logoGlow,  { toValue: 0.2, duration: 1800, useNativeDriver: true }),
+    ]));
+
+    // Ring scale pulse
+    const ringLoop = Animated.loop(Animated.sequence([
+      Animated.timing(ringAnim, { toValue: 1, duration: 2200, useNativeDriver: true }),
+      Animated.timing(ringAnim, { toValue: 0, duration: 2200, useNativeDriver: true }),
+    ]));
+
+    // Main entrance sequence
     Animated.sequence([
       Animated.parallel([
-        Animated.timing(fadeAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
-        Animated.timing(slideAnim, { toValue: 0, duration: 700, useNativeDriver: true }),
-        Animated.spring(scaleAnim, { toValue: 1, friction: 6, useNativeDriver: true }),
+        Animated.timing(fadeAnim,  { toValue: 1, duration: 900, useNativeDriver: true }),
+        Animated.spring(slideAnim, { toValue: 0, friction: 7, tension: 45, useNativeDriver: true }),
+        Animated.spring(scaleAnim, { toValue: 1, friction: 5, tension: 55, useNativeDriver: true }),
       ]),
-      Animated.timing(btnAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
-    ]).start();
+      Animated.stagger(90, pillAnims.map(a =>
+        Animated.spring(a, { toValue: 1, friction: 6, tension: 80, useNativeDriver: true })
+      )),
+      Animated.spring(btnAnim, { toValue: 1, friction: 6, tension: 50, useNativeDriver: true }),
+    ]).start(() => {
+      glowLoop.start();
+      ringLoop.start();
+    });
   }, []);
 
+  const blob1Scale    = blob1Anim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.18] });
+  const blob2Scale    = blob2Anim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.22] });
+  const blob3Scale    = blob3Anim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.15] });
+  const glowOpacity   = logoGlow.interpolate({ inputRange: [0, 1], outputRange: [0.2, 0.75] });
+  const ringScale     = ringAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] });
+  const ringOpacity   = ringAnim.interpolate({ inputRange: [0, 1], outputRange: [0.5, 0] });
+  const logoFloatY    = logoGlow.interpolate({ inputRange: [0, 1], outputRange: [0, -7] });
+
   return (
-    <ImageBackground 
-      source={{ uri: 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=1920&q=80' }} 
-      style={styles.bgImage}
-      resizeMode="cover"
-    >
-      <View style={styles.overlay} />
+    <View style={styles.root}>
       <LinearGradient
-        colors={["rgba(13,13,13,0.3)", "rgba(17,13,43,0.7)", "rgba(26,16,64,0.9)"]}
-        style={styles.gradient}
-        start={{ x: 0.2, y: 0 }}
-        end={{ x: 0.8, y: 1 }}
-      >
-        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+        colors={["#08081A", "#0D0D22", "#0A0818"]}
+        style={StyleSheet.absoluteFill}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+      />
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-        {/* Decorative blobs */}
-        <View style={[styles.blob, styles.blob1]} />
-      <View style={[styles.blob, styles.blob2]} />
+      {/* Ambient blobs */}
+      <Animated.View style={[styles.blob, styles.blob1, { transform: [{ scale: blob1Scale }] }]} />
+      <Animated.View style={[styles.blob, styles.blob2, { transform: [{ scale: blob2Scale }] }]} />
+      <Animated.View style={[styles.blob, styles.blob3, { transform: [{ scale: blob3Scale }] }]} />
 
-      {/* Logo / Icon */}
-      <Animated.View style={[styles.logoWrap, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
-        <LinearGradient colors={["#6C63FF", "#9c94ff"]} style={styles.logoCircle} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-          <Ionicons name="home" size={44} color="#fff" />
-        </LinearGradient>
-      </Animated.View>
+      {/* Floating particles */}
+      {PARTICLES.map((p, i) => <Particle key={i} {...p} />)}
 
-      {/* Headline */}
-      <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }], alignItems: "center" }}>
-        <Text style={styles.appName}>Staytra</Text>
-        <Text style={styles.tagline}>Hostel Management</Text>
-        <Text style={styles.description}>
-          Manage your hostel life easily and securely.{"\n"}Payments, rooms, complaints — all in one place.
-        </Text>
-      </Animated.View>
+      {/* Grid overlay for texture */}
+      <View style={styles.gridOverlay} pointerEvents="none" />
 
-      {/* Feature pills */}
-      <Animated.View style={[styles.pillsRow, { opacity: fadeAnim }]}>
-        {[
-          { icon: "wallet-outline", label: "Payments" },
-          { icon: "chatbubble-outline", label: "Complaints" },
-          { icon: "qr-code-outline", label: "QR Access" },
-          { icon: "bed-outline", label: "Rooms" },
-        ].map((f) => (
-          <View key={f.label} style={styles.pill}>
-            <Ionicons name={f.icon} size={16} color="#6C63FF" />
-            <Text style={styles.pillText}>{f.label}</Text>
-          </View>
-        ))}
-      </Animated.View>
-
-      {/* Buttons */}
-      <Animated.View style={[styles.btnGroup, { opacity: btnAnim }]}>
-        <TouchableOpacity
-          style={styles.loginBtn}
-          activeOpacity={0.85}
-          onPress={() => router.push("/(auth)/login")}
-        >
-          <LinearGradient colors={["#6C63FF", "#8B85FF"]} style={styles.loginBtnGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-            <Text style={styles.loginBtnText}>Login</Text>
-            <Ionicons name="arrow-forward" size={18} color="#fff" style={{ marginLeft: 8 }} />
+      <View style={styles.content}>
+        {/* Logo with rings */}
+        <Animated.View style={[styles.logoWrap, {
+          opacity: fadeAnim,
+          transform: [{ scale: scaleAnim }, { translateY: logoFloatY }],
+        }]}>
+          {/* Outer ping ring */}
+          <Animated.View style={[styles.logoRingOuter, { transform: [{ scale: ringScale }], opacity: ringOpacity }]} />
+          {/* Glow halo */}
+          <Animated.View style={[styles.logoGlow, { opacity: glowOpacity }]} />
+          {/* Logo circle */}
+          <LinearGradient
+            colors={["#7B72FF", "#6C63FF", "#5A52D5"]}
+            style={styles.logoCircle}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          >
+            <Ionicons name="home" size={42} color="#fff" />
           </LinearGradient>
-        </TouchableOpacity>
+          {/* Accent dot */}
+          <View style={styles.logoDot} />
+        </Animated.View>
 
-        <TouchableOpacity
-          style={styles.registerBtn}
-          activeOpacity={0.85}
-          onPress={() => router.push("/(auth)/register")}
-        >
-          <Text style={styles.registerBtnText}>Create Account</Text>
-        </TouchableOpacity>
+        {/* Headline */}
+        <Animated.View style={[styles.headline, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+          <Text style={styles.appName}>Staytra</Text>
+          <View style={styles.taglineRow}>
+            <LinearGradient colors={["transparent", "rgba(108,99,255,0.6)", "transparent"]} style={styles.taglineLine} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} />
+            <Text style={styles.tagline}>HOSTEL MANAGEMENT</Text>
+            <LinearGradient colors={["transparent", "rgba(108,99,255,0.6)", "transparent"]} style={styles.taglineLine} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} />
+          </View>
+          <Text style={styles.description}>
+            Manage your hostel life with ease.{"\n"}Payments, rooms, complaints — all in one place.
+          </Text>
+        </Animated.View>
 
-        <TouchableOpacity
-          style={styles.visitorBtn}
-          activeOpacity={0.85}
-          onPress={() => router.push("/(visitor)/dashboard")}
-        >
-          <Text style={styles.visitorBtnText}>Continue as Visitor</Text>
-        </TouchableOpacity>
-      </Animated.View>
+        {/* Feature pills */}
+        <View style={styles.pillsRow}>
+          {FEATURES.map((f, i) => (
+            <Animated.View
+              key={f.label}
+              style={[styles.pill, {
+                opacity: pillAnims[i],
+                transform: [{
+                  scale: pillAnims[i].interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }),
+                }],
+              }]}
+            >
+              <View style={styles.pillInner}>
+                <View style={styles.pillIconDot}>
+                  <Ionicons name={f.icon} size={14} color={colors.primary} />
+                </View>
+                <Text style={styles.pillText}>{f.label}</Text>
+              </View>
+            </Animated.View>
+          ))}
+        </View>
 
-      <Text style={styles.footer}>StaySync © 2025 · All rights reserved</Text>
-      </LinearGradient>
-    </ImageBackground>
+        {/* CTA Buttons */}
+        <Animated.View style={[styles.btnGroup, {
+          opacity: btnAnim,
+          transform: [{ translateY: btnAnim.interpolate({ inputRange: [0, 1], outputRange: [28, 0] }) }],
+        }]}>
+          <TouchableOpacity
+            style={styles.loginBtn}
+            activeOpacity={0.85}
+            onPress={() => router.push("/(auth)/login")}
+          >
+            <LinearGradient
+              colors={["#7B72FF", "#6C63FF", "#5A52D5"]}
+              style={styles.loginBtnGrad}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+            >
+              <Ionicons name="log-in-outline" size={19} color="#fff" style={{ marginRight: 10 }} />
+              <Text style={styles.loginBtnText}>Sign In</Text>
+              <View style={styles.btnArrow}>
+                <Ionicons name="arrow-forward" size={16} color="#fff" />
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.registerBtn}
+            activeOpacity={0.85}
+            onPress={() => router.push("/(auth)/register")}
+          >
+            <LinearGradient
+              colors={["rgba(108,99,255,0.12)", "rgba(108,99,255,0.05)"]}
+              style={styles.registerBtnGrad}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            >
+              <Ionicons name="person-add-outline" size={19} color={colors.primaryLight} style={{ marginRight: 10 }} />
+              <Text style={styles.registerBtnText}>Create Account</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.visitorBtn}
+            activeOpacity={0.7}
+            onPress={() => router.push("/(visitor)/dashboard")}
+          >
+            <Text style={styles.visitorBtnText}>Continue as Visitor</Text>
+            <Ionicons name="chevron-forward" size={14} color="#A0A0C0" style={{ marginLeft: 4 }} />
+          </TouchableOpacity>
+        </Animated.View>
+      </View>
+
+      {/* Footer */}
+      <View style={styles.footer}>
+        <View style={styles.footerDot} />
+        <Text style={styles.footerText}>StaySync © 2025</Text>
+        <View style={styles.footerDot} />
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  bgImage: { flex: 1 },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.5)",
-  },
-  gradient: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 30 },
+  root: { flex: 1 },
+  content: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 28 },
 
-  // Decorative circles
-  blob: { position: "absolute", borderRadius: 999, opacity: 0.12 },
-  blob1: { width: 280, height: 280, backgroundColor: "#6C63FF", top: -60, right: -80 },
-  blob2: { width: 200, height: 200, backgroundColor: "#9c94ff", bottom: 80, left: -60 },
+  blob: { position: "absolute", borderRadius: 999 },
+  blob1: {
+    width: 380, height: 380,
+    backgroundColor: "rgba(108,99,255,0.13)",
+    top: -120, right: -130,
+  },
+  blob2: {
+    width: 300, height: 300,
+    backgroundColor: "rgba(155,143,255,0.09)",
+    bottom: 60, left: -120,
+  },
+  blob3: {
+    width: 200, height: 200,
+    backgroundColor: "rgba(255,107,157,0.06)",
+    top: "40%", right: -80,
+  },
+
+  gridOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.03,
+    // subtle visual texture implied via transparency
+  },
 
   // Logo
-  logoWrap: { marginBottom: 30 },
+  logoWrap: { alignItems: "center", justifyContent: "center", marginBottom: 38 },
+  logoRingOuter: {
+    position: "absolute", width: 150, height: 150, borderRadius: 75,
+    borderWidth: 1.5, borderColor: "rgba(108,99,255,0.5)",
+  },
+  logoGlow: {
+    position: "absolute", width: 140, height: 140, borderRadius: 70,
+    backgroundColor: "rgba(108,99,255,0.28)",
+  },
   logoCircle: {
-    width: 90, height: 90, borderRadius: 28, alignItems: "center", justifyContent: "center",
-    shadowColor: "#6C63FF", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.5, shadowRadius: 14, elevation: 8
+    width: 92, height: 92, borderRadius: 28,
+    alignItems: "center", justifyContent: "center",
+    shadowColor: "#6C63FF", shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.7, shadowRadius: 22, elevation: 14,
+  },
+  logoDot: {
+    position: "absolute", top: 6, right: 6,
+    width: 14, height: 14, borderRadius: 7,
+    backgroundColor: "#10d9a0",
+    borderWidth: 2, borderColor: "#0A0A0F",
   },
 
-  // Text
-  appName: { fontSize: 40, fontWeight: "900", color: "#fff", letterSpacing: 1, textAlign: "center" },
-  tagline: { fontSize: 16, fontWeight: "600", color: "#9c94ff", marginTop: 4, marginBottom: 16, textAlign: "center" },
-  description: { fontSize: 15, color: "#B0B0B0", textAlign: "center", lineHeight: 24 },
-
-  // Feature pills
-  pillsRow: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 8, marginTop: 28, marginBottom: 40 },
-  pill: {
-    flexDirection: "row", alignItems: "center", backgroundColor: "rgba(108,99,255,0.12)",
-    paddingVertical: 7, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1, borderColor: "rgba(108,99,255,0.3)"
+  // Headline
+  headline: { alignItems: "center", marginBottom: 30 },
+  appName: {
+    fontSize: 50, fontWeight: "900", color: "#F2F2FF",
+    letterSpacing: -2, textAlign: "center",
+    textShadowColor: "rgba(108,99,255,0.4)",
+    textShadowOffset: { width: 0, height: 4 }, textShadowRadius: 16,
   },
-  pillText: { color: "#B0B0B0", fontSize: 13, marginLeft: 6 },
+  taglineRow: { flexDirection: "row", alignItems: "center", marginTop: 10, marginBottom: 18, width: "100%" },
+  taglineLine: { flex: 1, height: 1 },
+  tagline: {
+    fontSize: 10, fontWeight: "800", color: colors.primaryLight,
+    letterSpacing: 3, marginHorizontal: 12,
+  },
+  description: { fontSize: 14.5, color: "#7878A0", textAlign: "center", lineHeight: 24 },
+
+  // Pills
+  pillsRow: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 8, marginBottom: 40 },
+  pill: { borderRadius: 24 },
+  pillInner: {
+    flexDirection: "row", alignItems: "center",
+    paddingVertical: 8, paddingHorizontal: 14,
+    backgroundColor: "rgba(108,99,255,0.1)",
+    borderRadius: 24, borderWidth: 1, borderColor: "rgba(108,99,255,0.2)",
+  },
+  pillIconDot: {
+    width: 22, height: 22, borderRadius: 11,
+    backgroundColor: "rgba(108,99,255,0.18)",
+    alignItems: "center", justifyContent: "center", marginRight: 7,
+  },
+  pillText: { fontSize: 12, color: "#C0C0E0", fontWeight: "700" },
 
   // Buttons
-  btnGroup: { width: "100%", gap: 14 },
-  loginBtn: { borderRadius: 16, overflow: "hidden" },
-  loginBtnGrad: { paddingVertical: 16, alignItems: "center", justifyContent: "center", flexDirection: "row" },
-  loginBtnText: { color: "#fff", fontWeight: "bold", fontSize: 17 },
+  btnGroup: { width: "100%", gap: 12 },
+  loginBtn: { borderRadius: 18, overflow: "hidden" },
+  loginBtnGrad: {
+    paddingVertical: 17, alignItems: "center", justifyContent: "center",
+    flexDirection: "row", paddingHorizontal: 24,
+  },
+  loginBtnText: { color: "#fff", fontWeight: "800", fontSize: 16, letterSpacing: 0.3 },
+  btnArrow: {
+    position: "absolute", right: 20,
+    width: 30, height: 30, borderRadius: 15,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    alignItems: "center", justifyContent: "center",
+  },
 
-  registerBtn: { borderWidth: 1.5, borderColor: "rgba(108,99,255,0.5)", borderRadius: 16, paddingVertical: 15, alignItems: "center" },
-  registerBtnText: { color: "#9c94ff", fontWeight: "bold", fontSize: 17 },
+  registerBtn: { borderRadius: 18, overflow: "hidden", borderWidth: 1.5, borderColor: "rgba(108,99,255,0.35)" },
+  registerBtnGrad: {
+    paddingVertical: 16, alignItems: "center", justifyContent: "center", flexDirection: "row",
+  },
+  registerBtnText: { color: colors.primaryLight, fontWeight: "700", fontSize: 16 },
 
-  visitorBtn: { paddingVertical: 8, alignItems: "center" },
-  visitorBtnText: { color: "#B0B0B0", fontSize: 15, textDecorationLine: "underline" },
+  visitorBtn: { paddingVertical: 10, alignItems: "center", flexDirection: "row", justifyContent: "center" },
+  visitorBtnText: { color: "#A0A0C0", fontSize: 14, letterSpacing: 0.2 },
 
-  footer: { position: "absolute", bottom: 24, color: "#444", fontSize: 12 },
+  // Footer
+  footer: {
+    position: "absolute", bottom: 28, alignSelf: "center",
+    flexDirection: "row", alignItems: "center", gap: 8,
+  },
+  footerDot: { width: 3, height: 3, borderRadius: 1.5, backgroundColor: "#2A2A40" },
+  footerText: { color: "#2E2E42", fontSize: 11, letterSpacing: 0.5 },
 });

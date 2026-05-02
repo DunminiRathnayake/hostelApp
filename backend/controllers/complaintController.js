@@ -32,3 +32,11 @@ export const updateComplaintStatus = asyncHandler(async (req, res) => {
   const complaint = await interactionService.updateComplaintStatus(req.params.id, req.body.status);
   res.json(complaint);
 });
+
+// @desc    Delete complaint
+// @route   DELETE /api/complaints/:id
+// @access  Private (Admin)
+export const deleteComplaint = asyncHandler(async (req, res) => {
+  await interactionService.deleteComplaint(req.params.id);
+  res.json({ message: 'Complaint removed' });
+});

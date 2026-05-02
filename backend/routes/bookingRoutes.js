@@ -6,9 +6,10 @@ import {
   getBookingById,
   updateBookingStatus,
   cancelBooking,
-  getBookingStatusPublic
+  getBookingStatusPublic,
+  deleteBooking
 } from '../controllers/bookingController.js';
-import { protect, wardenOnly } from '../middleware/authMiddleware.js';
+import { protect, wardenOnly, authorizeRoles } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -23,7 +24,8 @@ router.route('/public/status')
   .get(getBookingStatusPublic);
 
 router.route('/:id')
-  .get(protect, getBookingById);
+  .get(protect, getBookingById)
+  .delete(protect, authorizeRoles('warden', 'admin'), deleteBooking);
 
 router.route('/:id/status')
   .put(protect, wardenOnly, updateBookingStatus);

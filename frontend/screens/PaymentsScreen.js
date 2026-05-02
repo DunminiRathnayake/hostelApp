@@ -1,31 +1,93 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, TextInput, Platform, SafeAreaView } from "react-native";
+import React, { useState, useEffect, useRef } from "react";
+import {
+  View, Text, StyleSheet, FlatList, TouchableOpacity,
+  Alert, TextInput, Platform, SafeAreaView, Animated, StatusBar,
+} from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import API from "../services/api";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { colors, T, getStatusBadge } from "../theme";
 
+const PAYMENT_TYPES = ["Monthly Rent", "Key Money", "Other"];
+
+const STATUS_META = {
+  pending:  { icon: "time-outline",          color: colors.warning,  bg: colors.warningBg  },
+  approved: { icon: "checkmark-circle-outline", color: colors.success, bg: colors.successBg },
+  rejected: { icon: "close-circle-outline",  color: colors.error,    bg: colors.errorBg    },
+};
+
+function AnimatedPaymentItem({ item, index }) {
+  const anim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(anim, {
+      toValue: 1, duration: 340,
+      delay: index * 80,
+      useNativeDriver: true,
+    }).start();
+  }, []);
+
+  const { badge, text } = getStatusBadge(item.status);
+  const meta = STATUS_META[item.status?.toLowerCase()] || STATUS_META.pending;
+
+  let displayCategory = "Other";
+  if (item.category === "monthly")    displayCategory = "Monthly Rent";
+  if (item.category === "key_money")  displayCategory = "Key Money";
+  if (item.category === "other" && item.description) {
+    displayCategory = item.description === "fines" ? "Fines" : item.description;
+  }
+
+  return (
+    <Animated.View style={{
+      opacity: anim,
+      transform: [{ translateX: anim.interpolate({ inputRange: [0, 1], outputRange: [24, 0] }) }],
+    }}>
+      <View style={styles.payItem}>
+        <View style={[styles.payIconWrap, { backgroundColor: meta.bg }]}>
+          <Ionicons name={meta.icon} size={22} color={meta.color} />
+        </View>
+        <View style={styles.payInfo}>
+          <Text style={styles.payCat} numberOfLines={1}>{displayCategory}</Text>
+          <Text style={styles.payDate}>{new Date(item.createdAt).toLocaleDateString()}</Text>
+        </View>
+        <View style={styles.payRight}>
+          <Text style={[styles.payAmt, { color: meta.color }]}>
+            LKR {item.amount.toLocaleString()}
+          </Text>
+          <View style={[badge, styles.badgeSmall]}>
+            <Text style={[text, { fontSize: 10 }]}>{item.status.toUpperCase()}</Text>
+          </View>
+        </View>
+      </View>
+    </Animated.View>
+  );
+}
+
 export default function PaymentsScreen() {
-  const [payments, setPayments] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [payments,    setPayments]    = useState([]);
+  const [loading,     setLoading]     = useState(true);
+  const [amount,      setAmount]      = useState("");
+  const [category,    setCategory]    = useState("Monthly Rent");
+  const [dropOpen,    setDropOpen]    = useState(false);
+  const [slip,        setSlip]        = useState(null);
+  const [submitting,  setSubmitting]  = useState(false);
+  const [totalDue,    setTotalDue]    = useState(0);
 
-  // Form State
-  const [amount, setAmount] = useState("");
-  const [category, setCategory] = useState("Monthly Rent");
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [slip, setSlip] = useState(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const paymentTypes = ["Monthly Rent", "Key Money", "Other"];
+  const headerAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     fetchPayments();
+    Animated.timing(headerAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
   }, []);
 
   const fetchPayments = async () => {
     try {
       const res = await API.get("/payments/my");
       setPayments(res.data);
+      const due = res.data
+        .filter(p => p.status === "pending" || p.status === "rejected")
+        .reduce((s, p) => s + (p.amount || 0), 0);
+      setTotalDue(due);
     } catch (err) {
       console.log("Fetch payments error:", err);
     } finally {
@@ -34,198 +96,325 @@ export default function PaymentsScreen() {
   };
 
   const pickImage = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'], quality: 0.7,
-    });
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.7 });
     if (!result.canceled) setSlip(result.assets[0]);
   };
 
   const uploadReceipt = async () => {
     if (!amount || !category || !slip) {
-      return Alert.alert("Required Fields", "Please make sure to enter the amount, select a payment type, and attach your receipt.");
+      Alert.alert("Required Fields", "Please enter the amount, select a type, and attach your receipt.");
+      return;
     }
-    
-    // Map visual UI categories strictly to Mongoose enum DB formats
     let dbCategory = "other";
     if (category === "Monthly Rent") dbCategory = "monthly";
-    if (category === "Key Money") dbCategory = "key_money";
+    if (category === "Key Money")    dbCategory = "key_money";
 
-    let dbDescription = "";
-    if (category === "Other") dbDescription = "other payment";
-
-    setIsSubmitting(true);
+    setSubmitting(true);
     try {
       const formData = new FormData();
       formData.append("amount", amount);
       formData.append("category", dbCategory);
-      if (dbDescription) formData.append("description", dbDescription);
-      formData.append("paymentType", "bank"); 
-      
+      if (category === "Other") formData.append("description", "other payment");
+      formData.append("paymentType", "bank_transfer");
       formData.append("slipImage", {
-        uri: Platform.OS === 'ios' ? slip.uri.replace('file://', '') : slip.uri, 
-        name: "slip.jpg", 
-        type: slip.mimeType || "image/jpeg"
+        uri: Platform.OS === "ios" ? slip.uri.replace("file://", "") : slip.uri,
+        name: "slip.jpg",
+        type: slip.mimeType || "image/jpeg",
       });
-      
       await API.post("/payments", formData, { headers: { "Content-Type": "multipart/form-data" } });
-      Alert.alert("Payment Submitted", "Your receipt has been uploaded and is pending warden approval.");
-      
-      setAmount("");
-      setCategory("Monthly Rent");
-      setIsDropdownOpen(false);
-      setSlip(null);
+      Alert.alert("Payment Submitted ✓", "Your receipt is pending warden approval.");
+      setAmount(""); setCategory("Monthly Rent"); setSlip(null); setDropOpen(false);
       fetchPayments();
     } catch (err) {
-      console.error(err.response?.data);
-      Alert.alert("Upload Error", err.response?.data?.message || err.message);
+      const errorMsg = err.response?.data?.errors?.join("\n") || err.response?.data?.message || err.message;
+      Alert.alert("Upload Error", errorMsg);
     } finally {
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
   };
 
   return (
-    <SafeAreaView style={[T.screen, styles.safeArea]}>
+    <SafeAreaView style={[T.screen, { flex: 1 }]}>
+      <StatusBar barStyle="light-content" />
       <FlatList
-        style={styles.container}
         data={payments}
-        keyExtractor={(item) => item._id}
+        keyExtractor={item => item._id}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 50 }}
         ListHeaderComponent={
           <>
-            <Text style={T.title}>Payments</Text>
-            
-            <View style={T.card}>
-              <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                 <Ionicons name="information-circle" size={24} color={colors.primary} style={{marginRight: 10}}/>
-                 <Text style={[T.subtitle, {marginBottom: 0, flex: 1, color: colors.textSecondary}]}>
-                   Upload clear photos of your bank deposit slips. Warden will review and approve your submission.
-                 </Text>
-              </View>
+            {/* ── Page Header ── */}
+            <Animated.View style={[styles.pageHeader, {
+              opacity: headerAnim,
+              transform: [{ translateY: headerAnim.interpolate({ inputRange: [0, 1], outputRange: [-14, 0] }) }],
+            }]}>
+              <Text style={styles.pageTitle}>Payments</Text>
+              <Text style={styles.pageSubtitle}>Track and submit your hostel payments</Text>
+            </Animated.View>
+
+            {/* ── Balance Hero Card ── */}
+            <Animated.View style={[styles.balanceWrap, { opacity: headerAnim }]}>
+              <LinearGradient
+                colors={["#6C63FF", "#9B8FFF"]}
+                style={styles.balanceCard}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+              >
+                {/* decorative circles */}
+                <View style={styles.bcCircle1} />
+                <View style={styles.bcCircle2} />
+                <View style={styles.bcContent}>
+                  <Text style={styles.bcLabel}>OUTSTANDING BALANCE</Text>
+                  <Text style={styles.bcAmount}>
+                    LKR {totalDue > 0 ? totalDue.toLocaleString() : "0"}
+                  </Text>
+                  <View style={styles.bcStatus}>
+                    <View style={[styles.bcDot, { backgroundColor: totalDue > 0 ? "#FFC75F" : "#10d9a0" }]} />
+                    <Text style={styles.bcStatusText}>
+                      {totalDue > 0 ? `${payments.filter(p => p.status === "pending").length} pending review` : "All payments cleared"}
+                    </Text>
+                  </View>
+                </View>
+              </LinearGradient>
+            </Animated.View>
+
+            {/* ── Submit Payment Card ── */}
+            <View style={styles.sectionHeader}>
+              <Ionicons name="cloud-upload-outline" size={15} color={colors.primary} />
+              <Text style={styles.sectionTitle}>Submit Payment</Text>
             </View>
 
-            <View style={[T.card, T.cardShadow]}>
-              <Text style={[T.title, {fontSize: 20, marginTop: 0, marginBottom: 20}]}>Submit Payment</Text>
-              
+            <View style={[styles.formCard, T.cardShadow]}>
+              {/* Info banner */}
+              <View style={styles.infoBanner}>
+                <Ionicons name="information-circle-outline" size={16} color={colors.info} />
+                <Text style={styles.infoText}>
+                  Upload a clear photo of your bank deposit slip for warden review.
+                </Text>
+              </View>
+
+              {/* Amount */}
               <Text style={T.label}>AMOUNT (LKR)</Text>
-              <TextInput 
-                style={T.input} 
-                placeholder="e.g. 15000" 
-                placeholderTextColor={colors.placeholder}
-                keyboardType="numeric" 
-                value={amount} 
-                onChangeText={setAmount} 
-              />
+              <View style={styles.inputWrap}>
+                <Ionicons name="cash-outline" size={18} color={colors.textMuted} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="e.g. 15000"
+                  placeholderTextColor={colors.placeholder}
+                  keyboardType="numeric"
+                  value={amount}
+                  onChangeText={setAmount}
+                />
+              </View>
 
+              {/* Type Dropdown */}
               <Text style={T.label}>PAYMENT TYPE</Text>
-              <View style={styles.dropdownContainer}>
-                <TouchableOpacity 
-                  style={[T.input, styles.dropdownHeader]} 
+              <View style={styles.dropWrap}>
+                <TouchableOpacity
+                  style={styles.dropHeader}
+                  onPress={() => setDropOpen(!dropOpen)}
                   activeOpacity={0.8}
-                  onPress={() => setIsDropdownOpen(!isDropdownOpen)}
                 >
-                  <Text style={styles.dropdownHeaderText}>{category}</Text>
-                  <Ionicons name={isDropdownOpen ? "chevron-up" : "chevron-down"} size={20} color={colors.textSecondary} />
+                  <View style={styles.dropHeaderLeft}>
+                    <Ionicons name="receipt-outline" size={17} color={colors.textMuted} style={{ marginRight: 10 }} />
+                    <Text style={styles.dropHeaderText}>{category}</Text>
+                  </View>
+                  <Ionicons name={dropOpen ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary} />
                 </TouchableOpacity>
-
-                {isDropdownOpen && (
-                  <View style={styles.dropdownList}>
-                    {paymentTypes.map((type, index) => (
+                {dropOpen && (
+                  <View style={styles.dropList}>
+                    {PAYMENT_TYPES.map((type, i) => (
                       <TouchableOpacity
                         key={type}
-                        style={[styles.dropdownOption, index === paymentTypes.length - 1 && { borderBottomWidth: 0 }]}
-                        onPress={() => {
-                          setCategory(type);
-                          setIsDropdownOpen(false);
-                        }}
+                        style={[styles.dropOption, i === PAYMENT_TYPES.length - 1 && { borderBottomWidth: 0 }]}
+                        onPress={() => { setCategory(type); setDropOpen(false); }}
                       >
-                        <Text style={[styles.dropdownOptionText, category === type && styles.dropdownOptionTextActive]}>
+                        <Text style={[styles.dropOptionText, category === type && styles.dropOptionActive]}>
                           {type}
                         </Text>
-                        {category === type && <Ionicons name="checkmark" size={18} color={colors.primary} />}
+                        {category === type && <Ionicons name="checkmark-circle" size={18} color={colors.primary} />}
                       </TouchableOpacity>
                     ))}
                   </View>
                 )}
               </View>
 
+              {/* Upload */}
               <Text style={T.label}>RECEIPT IMAGE</Text>
-              <TouchableOpacity style={styles.uploadBtn} onPress={pickImage}>
-                <Ionicons name={slip ? "checkmark-circle" : "cloud-upload-outline"} size={32} color={slip ? colors.success : colors.textSecondary} />
-                <Text style={styles.uploadBtnText}>
-                  {slip ? "Receipt attached! Tap to change" : "Tap to upload receipt"}
+              <TouchableOpacity style={[styles.uploadArea, slip && styles.uploadAreaDone]} onPress={pickImage}>
+                <View style={[styles.uploadIconRing, { backgroundColor: slip ? colors.successBg : colors.primaryGlow }]}>
+                  <Ionicons
+                    name={slip ? "checkmark-circle" : "cloud-upload-outline"}
+                    size={28} color={slip ? colors.success : colors.primary}
+                  />
+                </View>
+                <Text style={[styles.uploadTitle, { color: slip ? colors.success : colors.textSecondary }]}>
+                  {slip ? "Receipt attached!" : "Tap to upload receipt"}
+                </Text>
+                <Text style={styles.uploadSub}>
+                  {slip ? "Tap to replace" : "JPG, PNG accepted"}
                 </Text>
               </TouchableOpacity>
 
-              <TouchableOpacity 
-                style={[T.primaryBtn, isSubmitting && styles.submitBtnDisabled]} 
-                onPress={uploadReceipt} 
-                disabled={isSubmitting}
+              {/* Submit */}
+              <TouchableOpacity
+                style={[styles.submitBtn, submitting && { opacity: 0.75 }]}
+                onPress={uploadReceipt}
+                disabled={submitting}
+                activeOpacity={0.88}
               >
-                <Text style={T.primaryBtnText}>{isSubmitting ? "Uploading..." : "Submit Payment"}</Text>
+                <LinearGradient
+                  colors={["#6C63FF", "#9B8FFF"]}
+                  style={styles.submitBtnGrad}
+                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                >
+                  <Ionicons name={submitting ? "hourglass-outline" : "send"} size={18} color="#fff" style={{ marginRight: 10 }} />
+                  <Text style={styles.submitBtnText}>{submitting ? "Uploading…" : "Submit Payment"}</Text>
+                </LinearGradient>
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.historyTitle}>History</Text>
-            {payments.length === 0 && !loading && (
-              <Text style={styles.emptyText}>No payments submitted yet.</Text>
+            {/* ── History Header ── */}
+            <View style={[styles.sectionHeader, { marginTop: 8 }]}>
+              <Ionicons name="time-outline" size={15} color={colors.primary} />
+              <Text style={styles.sectionTitle}>Payment History</Text>
+              {payments.length > 0 && (
+                <View style={styles.countBadge}>
+                  <Text style={styles.countBadgeText}>{payments.length}</Text>
+                </View>
+              )}
+            </View>
+
+            {!loading && payments.length === 0 && (
+              <View style={styles.emptyState}>
+                <View style={styles.emptyIconWrap}>
+                  <Ionicons name="wallet-outline" size={40} color={colors.textMuted} />
+                </View>
+                <Text style={styles.emptyTitle}>No payments yet</Text>
+                <Text style={styles.emptyText}>Your submitted payments will appear here.</Text>
+              </View>
             )}
           </>
         }
-        renderItem={({ item }) => {
-          const { badge, text } = getStatusBadge(item.status);
-          
-          let displayCategory = "Other";
-          if (item.category === "monthly") displayCategory = "Monthly Rent";
-          if (item.category === "key_money") displayCategory = "Key Money";
-          if (item.category === "other" && item.description) {
-            displayCategory = item.description === "fines" ? "Fines" : item.description;
-          }
-
-          return (
-            <View style={[T.card, T.cardShadow]}>
-              <View style={styles.cardHeader}>
-                <View style={styles.cardTypeGroup}>
-                  <Text style={styles.cardCategory} numberOfLines={1}>{displayCategory}</Text>
-                  <Text style={styles.date}>{new Date(item.createdAt).toLocaleDateString()}</Text>
-                </View>
-                <View style={[badge]}>
-                  <Text style={[text]}>
-                    {item.status.toUpperCase()}
-                  </Text>
-                </View>
-              </View>
-              <Text style={styles.cardAmount}>LKR {item.amount.toLocaleString()}</Text>
-            </View>
-          );
-        }}
-        contentContainerStyle={{ paddingBottom: 40 }}
+        renderItem={({ item, index }) => (
+          <View style={{ paddingHorizontal: 20 }}>
+            <AnimatedPaymentItem item={item} index={index} />
+          </View>
+        )}
       />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1 },
-  container: { flex: 1, paddingHorizontal: 20 },
-  
-  dropdownContainer: { marginBottom: 20, zIndex: 10 },
-  dropdownHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 0 },
-  dropdownHeaderText: { fontSize: 16, color: colors.textPrimary },
-  dropdownList: { position: "absolute", top: 55, left: 0, right: 0, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 12, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 5, zIndex: 999 },
-  dropdownOption: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 15, borderBottomWidth: 1, borderBottomColor: colors.cardBorder },
-  dropdownOptionText: { fontSize: 16, color: colors.textSecondary },
-  dropdownOptionTextActive: { color: colors.primary, fontWeight: "bold" },
+  pageHeader: { paddingHorizontal: 20, paddingTop: 20, marginBottom: 18 },
+  pageTitle: { fontSize: 30, fontWeight: "800", color: colors.textPrimary, letterSpacing: -0.6 },
+  pageSubtitle: { fontSize: 14, color: colors.textSecondary, marginTop: 3 },
 
-  uploadBtn: { borderWidth: 1, borderColor: colors.cardBorder, borderStyle: "dashed", padding: 30, borderRadius: 16, alignItems: "center", marginBottom: 25, backgroundColor: colors.surface },
-  uploadBtnText: { color: colors.textSecondary, fontWeight: "500", fontSize: 14, marginTop: 10 },
-  
-  submitBtnDisabled: { opacity: 0.7 },
-  
-  historyTitle: { fontSize: 22, fontWeight: "bold", color: colors.textPrimary, marginBottom: 15 },
-  emptyText: { color: colors.textMuted, fontStyle: "italic" },
-  
-  cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 },
-  cardTypeGroup: { flex: 1 },
-  cardCategory: { fontSize: 16, fontWeight: "600", color: colors.textPrimary },
-  date: { color: colors.textMuted, fontSize: 13, marginTop: 4 },
-  cardAmount: { fontSize: 22, fontWeight: "bold", color: colors.textPrimary, marginTop: 5 }
+  // Balance card
+  balanceWrap: { paddingHorizontal: 20, marginBottom: 22 },
+  balanceCard: { borderRadius: 24, padding: 24, overflow: "hidden", position: "relative" },
+  bcCircle1: {
+    position: "absolute", width: 160, height: 160, borderRadius: 80,
+    backgroundColor: "rgba(255,255,255,0.08)", top: -60, right: -50,
+  },
+  bcCircle2: {
+    position: "absolute", width: 100, height: 100, borderRadius: 50,
+    backgroundColor: "rgba(255,255,255,0.05)", bottom: -30, left: 10,
+  },
+  bcContent: { position: "relative", zIndex: 1 },
+  bcLabel: { fontSize: 10, fontWeight: "700", color: "rgba(255,255,255,0.7)", letterSpacing: 1.5, marginBottom: 6 },
+  bcAmount: { fontSize: 34, fontWeight: "900", color: "#fff", letterSpacing: -1 },
+  bcStatus: { flexDirection: "row", alignItems: "center", gap: 7, marginTop: 12 },
+  bcDot: { width: 7, height: 7, borderRadius: 3.5 },
+  bcStatusText: { fontSize: 13, color: "rgba(255,255,255,0.85)", fontWeight: "500" },
+
+  // Section header
+  sectionHeader: { flexDirection: "row", alignItems: "center", paddingHorizontal: 20, marginBottom: 12, gap: 8 },
+  sectionTitle: { fontSize: 13, fontWeight: "800", color: colors.textPrimary, letterSpacing: 0.2 },
+  countBadge: { backgroundColor: colors.primaryGlow, paddingHorizontal: 9, paddingVertical: 2, borderRadius: 10 },
+  countBadgeText: { fontSize: 11, color: colors.primary, fontWeight: "700" },
+
+  // Form card
+  formCard: {
+    marginHorizontal: 20, marginBottom: 22,
+    backgroundColor: colors.card, borderRadius: 22,
+    borderWidth: 1, borderColor: colors.cardBorder, padding: 20,
+  },
+  infoBanner: {
+    flexDirection: "row", gap: 9, alignItems: "flex-start",
+    backgroundColor: colors.infoBg, borderRadius: 12, padding: 12,
+    marginBottom: 20, borderWidth: 1, borderColor: "rgba(91,200,255,0.18)",
+  },
+  infoText: { flex: 1, fontSize: 13, color: colors.info, lineHeight: 19 },
+
+  inputWrap: {
+    flexDirection: "row", alignItems: "center",
+    backgroundColor: colors.input, borderRadius: 14,
+    borderWidth: 1.5, borderColor: colors.inputBorder,
+    paddingHorizontal: 14, marginBottom: 18,
+  },
+  inputIcon: { marginRight: 10 },
+  input: { flex: 1, paddingVertical: 14, fontSize: 15, color: colors.textPrimary },
+
+  dropWrap: { marginBottom: 18, zIndex: 10 },
+  dropHeader: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    backgroundColor: colors.input, borderRadius: 14,
+    borderWidth: 1.5, borderColor: colors.inputBorder, padding: 14,
+  },
+  dropHeaderLeft: { flexDirection: "row", alignItems: "center" },
+  dropHeaderText: { fontSize: 15, color: colors.textPrimary },
+  dropList: {
+    position: "absolute", top: 54, left: 0, right: 0,
+    backgroundColor: colors.surface, borderRadius: 14,
+    borderWidth: 1, borderColor: colors.cardBorder,
+    shadowColor: "#000", shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4, shadowRadius: 16, elevation: 8, zIndex: 999,
+  },
+  dropOption: {
+    flexDirection: "row", justifyContent: "space-between", alignItems: "center",
+    padding: 15, borderBottomWidth: 1, borderBottomColor: colors.cardBorder,
+  },
+  dropOptionText: { fontSize: 15, color: colors.textSecondary },
+  dropOptionActive: { color: colors.primary, fontWeight: "700" },
+
+  uploadArea: {
+    borderWidth: 1.5, borderColor: colors.cardBorder, borderStyle: "dashed",
+    borderRadius: 18, padding: 28, alignItems: "center", marginBottom: 20,
+    backgroundColor: "rgba(108,99,255,0.04)",
+  },
+  uploadAreaDone: { borderColor: colors.success + "55", backgroundColor: "rgba(16,217,160,0.05)" },
+  uploadIconRing: { width: 60, height: 60, borderRadius: 30, alignItems: "center", justifyContent: "center", marginBottom: 12 },
+  uploadTitle: { fontSize: 15, fontWeight: "600", marginBottom: 4 },
+  uploadSub: { fontSize: 12, color: colors.textMuted },
+
+  submitBtn: { borderRadius: 16, overflow: "hidden" },
+  submitBtnGrad: {
+    paddingVertical: 17, flexDirection: "row", alignItems: "center", justifyContent: "center",
+  },
+  submitBtnText: { color: "#fff", fontWeight: "800", fontSize: 16 },
+
+  // Payment item
+  payItem: {
+    flexDirection: "row", alignItems: "center", gap: 12,
+    backgroundColor: colors.card, borderRadius: 16, padding: 15,
+    borderWidth: 1, borderColor: colors.cardBorder, marginBottom: 10,
+  },
+  payIconWrap: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  payInfo: { flex: 1 },
+  payCat: { fontSize: 14, fontWeight: "700", color: colors.textPrimary, marginBottom: 3 },
+  payDate: { fontSize: 12, color: colors.textMuted },
+  payRight: { alignItems: "flex-end", gap: 5 },
+  payAmt: { fontSize: 15, fontWeight: "800" },
+  badgeSmall: { paddingVertical: 3, paddingHorizontal: 9, borderRadius: 8 },
+
+  // Empty state
+  emptyState: { alignItems: "center", paddingVertical: 40, paddingHorizontal: 20 },
+  emptyIconWrap: {
+    width: 80, height: 80, borderRadius: 40,
+    backgroundColor: "rgba(108,99,255,0.08)",
+    alignItems: "center", justifyContent: "center", marginBottom: 16,
+  },
+  emptyTitle: { fontSize: 17, fontWeight: "700", color: colors.textPrimary, marginBottom: 6 },
+  emptyText: { fontSize: 14, color: colors.textSecondary, textAlign: "center" },
 });

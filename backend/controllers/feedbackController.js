@@ -24,3 +24,11 @@ export const deleteFeedback = asyncHandler(async (req, res) => {
   await interactionService.deleteFeedback(req.params.id);
   res.json({ message: 'Feedback removed successfully' });
 });
+
+// @desc    Update feedback
+// @route   PUT /api/reviews/:id
+// @access  Private (Student)
+export const updateFeedback = asyncHandler(async (req, res) => {
+  const updatedFeedback = await interactionService.updateFeedback(req.params.id, req.body);
+  res.json(updatedFeedback);
+});

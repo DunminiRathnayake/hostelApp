@@ -68,6 +68,29 @@ class InteractionService {
     complaint.status = status;
     return await complaint.save();
   }
+
+  async deleteComplaint(complaintId) {
+    const complaint = await Complaint.findById(complaintId);
+    if (!complaint) {
+      const error = new Error('Complaint not found');
+      error.status = 404;
+      throw error;
+    }
+    await complaint.deleteOne();
+    return true;
+  }
+
+  async updateFeedback(feedbackId, updateData) {
+    const feedback = await Feedback.findById(feedbackId);
+    if (!feedback) {
+      const error = new Error('Feedback not found');
+      error.status = 404;
+      throw error;
+    }
+    if (updateData.rating) feedback.rating = updateData.rating;
+    if (updateData.comment) feedback.comment = updateData.comment;
+    return await feedback.save();
+  }
 }
 
 export default new InteractionService();
