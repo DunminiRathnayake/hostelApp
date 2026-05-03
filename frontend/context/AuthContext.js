@@ -14,14 +14,13 @@ export const AuthProvider = ({ children }) => {
 
   const loadContext = async () => {
     try {
-      const storedToken = await AsyncStorage.getItem("token");
-      const storedUser = await AsyncStorage.getItem("user");
-      if (storedToken && storedUser) {
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
-      }
+      // Force logout on startup so scanning the QR code always starts fresh
+      await AsyncStorage.removeItem("token");
+      await AsyncStorage.removeItem("user");
+      setToken(null);
+      setUser(null);
     } catch (error) {
-      console.log("Error loading AuthContext:", error);
+      console.log("Error clearing AuthContext:", error);
     } finally {
       setIsLoading(false);
     }
