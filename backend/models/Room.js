@@ -24,8 +24,8 @@ const roomSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['Single', 'Double', 'Triple', 'Dormitory'],
-    default: 'Double'
+    enum: ['Standard', 'Single', 'Double', 'Triple', 'Dormitory'],
+    default: 'Standard'
   },
 
   students: [{

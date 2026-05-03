@@ -14,7 +14,7 @@ export const createRoom = asyncHandler(async (req, res) => {
 // @access  Private
 export const getRooms = asyncHandler(async (req, res) => {
   const rooms = await roomService.getAllRooms();
-  res.json(rooms);
+  res.json({ rooms });
 });
 
 // @desc    Get room by ID
@@ -45,6 +45,7 @@ export const deleteRoom = asyncHandler(async (req, res) => {
 // @route   POST /api/rooms/allocate
 // @access  Private/Admin
 export const allocateRoom = asyncHandler(async (req, res) => {
+  console.log('[allocateRoom] req.body =', req.body);
   const { studentId, roomId } = req.body;
   const room = await roomService.allocateStudent(roomId, studentId);
   res.json({ message: 'Student allocated successfully', room });
