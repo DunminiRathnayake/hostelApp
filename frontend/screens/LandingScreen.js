@@ -58,7 +58,15 @@ export default function LandingScreen() {
   const slideAnim  = useRef(new Animated.Value(60)).current;
   const scaleAnim  = useRef(new Animated.Value(0.7)).current;
   const logoGlow   = useRef(new Animated.Value(0)).current;
-  const btnAnim    = useRef(new Animated.Value(0)).current;
+  const btnLoginAnim    = useRef(new Animated.Value(0)).current;
+  const btnRegAnim      = useRef(new Animated.Value(0)).current;
+  const btnVisAnim      = useRef(new Animated.Value(0)).current;
+  const headlineFade    = useRef(new Animated.Value(0)).current;
+  
+  // Press animations
+  const loginPressScale = useRef(new Animated.Value(1)).current;
+  const regPressScale   = useRef(new Animated.Value(1)).current;
+  const visPressScale   = useRef(new Animated.Value(1)).current;
   const blob1Anim  = useRef(new Animated.Value(0)).current;
   const blob2Anim  = useRef(new Animated.Value(0)).current;
   const blob3Anim  = useRef(new Animated.Value(0)).current;
@@ -90,15 +98,20 @@ export default function LandingScreen() {
 
     // Main entrance sequence
     Animated.sequence([
+      Animated.timing(fadeAnim,  { toValue: 1, duration: 600, useNativeDriver: true }),
+      Animated.spring(scaleAnim, { toValue: 1, friction: 5, tension: 55, useNativeDriver: true }),
       Animated.parallel([
-        Animated.timing(fadeAnim,  { toValue: 1, duration: 900, useNativeDriver: true }),
+        Animated.timing(headlineFade, { toValue: 1, duration: 600, useNativeDriver: true }),
         Animated.spring(slideAnim, { toValue: 0, friction: 7, tension: 45, useNativeDriver: true }),
-        Animated.spring(scaleAnim, { toValue: 1, friction: 5, tension: 55, useNativeDriver: true }),
       ]),
       Animated.stagger(90, pillAnims.map(a =>
         Animated.spring(a, { toValue: 1, friction: 6, tension: 80, useNativeDriver: true })
       )),
-      Animated.spring(btnAnim, { toValue: 1, friction: 6, tension: 50, useNativeDriver: true }),
+      Animated.stagger(80, [
+        Animated.spring(btnLoginAnim, { toValue: 1, friction: 6, tension: 50, useNativeDriver: true }),
+        Animated.spring(btnRegAnim, { toValue: 1, friction: 6, tension: 50, useNativeDriver: true }),
+        Animated.spring(btnVisAnim, { toValue: 1, friction: 6, tension: 50, useNativeDriver: true }),
+      ]),
     ]).start(() => {
       glowLoop.start();
       ringLoop.start();
@@ -156,7 +169,7 @@ export default function LandingScreen() {
         </Animated.View>
 
         {/* Headline */}
-        <Animated.View style={[styles.headline, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+        <Animated.View style={[styles.headline, { opacity: headlineFade, transform: [{ translateY: slideAnim }] }]}>
           <Text style={styles.appName}>Staytra</Text>
           <View style={styles.taglineRow}>
             <LinearGradient colors={["transparent", "rgba(108,99,255,0.6)", "transparent"]} style={styles.taglineLine} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} />
@@ -191,52 +204,70 @@ export default function LandingScreen() {
         </View>
 
         {/* CTA Buttons */}
-        <Animated.View style={[styles.btnGroup, {
-          opacity: btnAnim,
-          transform: [{ translateY: btnAnim.interpolate({ inputRange: [0, 1], outputRange: [28, 0] }) }],
-        }]}>
-          <TouchableOpacity
-            style={styles.loginBtn}
-            activeOpacity={0.85}
-            onPress={() => router.push("/(auth)/login")}
-          >
-            <LinearGradient
-              colors={["#7B72FF", "#6C63FF", "#5A52D5"]}
-              style={styles.loginBtnGrad}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+        <View style={styles.btnGroup}>
+          <Animated.View style={{
+            opacity: btnLoginAnim,
+            transform: [{ translateY: btnLoginAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }, { scale: loginPressScale }],
+          }}>
+            <TouchableOpacity
+              style={styles.loginBtn}
+              activeOpacity={1}
+              onPressIn={() => Animated.spring(loginPressScale, { toValue: 0.95, useNativeDriver: true }).start()}
+              onPressOut={() => Animated.spring(loginPressScale, { toValue: 1, useNativeDriver: true }).start()}
+              onPress={() => router.push("/(auth)/login")}
             >
-              <Ionicons name="log-in-outline" size={19} color="#fff" style={{ marginRight: 10 }} />
-              <Text style={styles.loginBtnText}>Sign In</Text>
-              <View style={styles.btnArrow}>
-                <Ionicons name="arrow-forward" size={16} color="#fff" />
-              </View>
-            </LinearGradient>
-          </TouchableOpacity>
+              <LinearGradient
+                colors={["#7B72FF", "#6C63FF", "#5A52D5"]}
+                style={styles.loginBtnGrad}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+              >
+                <Ionicons name="log-in-outline" size={19} color="#fff" style={{ marginRight: 10 }} />
+                <Text style={styles.loginBtnText}>Sign In</Text>
+                <View style={styles.btnArrow}>
+                  <Ionicons name="arrow-forward" size={16} color="#fff" />
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animated.View>
 
-          <TouchableOpacity
-            style={styles.registerBtn}
-            activeOpacity={0.85}
-            onPress={() => router.push("/(auth)/register")}
-          >
-            <LinearGradient
-              colors={["rgba(108,99,255,0.12)", "rgba(108,99,255,0.05)"]}
-              style={styles.registerBtnGrad}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          <Animated.View style={{
+            opacity: btnRegAnim,
+            transform: [{ translateY: btnRegAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }, { scale: regPressScale }],
+          }}>
+            <TouchableOpacity
+              style={styles.registerBtn}
+              activeOpacity={1}
+              onPressIn={() => Animated.spring(regPressScale, { toValue: 0.95, useNativeDriver: true }).start()}
+              onPressOut={() => Animated.spring(regPressScale, { toValue: 1, useNativeDriver: true }).start()}
+              onPress={() => router.push("/(auth)/register")}
             >
-              <Ionicons name="person-add-outline" size={19} color={colors.primaryLight} style={{ marginRight: 10 }} />
-              <Text style={styles.registerBtnText}>Create Account</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+              <LinearGradient
+                colors={["rgba(108,99,255,0.12)", "rgba(108,99,255,0.05)"]}
+                style={styles.registerBtnGrad}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+              >
+                <Ionicons name="person-add-outline" size={19} color={colors.primaryLight} style={{ marginRight: 10 }} />
+                <Text style={styles.registerBtnText}>Create Account</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animated.View>
 
-          <TouchableOpacity
-            style={styles.visitorBtn}
-            activeOpacity={0.7}
-            onPress={() => router.push("/(visitor)/dashboard")}
-          >
-            <Text style={styles.visitorBtnText}>Continue as Visitor</Text>
-            <Ionicons name="chevron-forward" size={14} color="#A0A0C0" style={{ marginLeft: 4 }} />
-          </TouchableOpacity>
-        </Animated.View>
+          <Animated.View style={{
+            opacity: btnVisAnim,
+            transform: [{ translateY: btnVisAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }, { scale: visPressScale }],
+          }}>
+            <TouchableOpacity
+              style={styles.visitorBtn}
+              activeOpacity={1}
+              onPressIn={() => Animated.spring(visPressScale, { toValue: 0.95, useNativeDriver: true }).start()}
+              onPressOut={() => Animated.spring(visPressScale, { toValue: 1, useNativeDriver: true }).start()}
+              onPress={() => router.push("/(visitor)/dashboard")}
+            >
+              <Text style={styles.visitorBtnText}>Continue as Visitor</Text>
+              <Ionicons name="chevron-forward" size={14} color="#A0A0C0" style={{ marginLeft: 4 }} />
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
       </View>
 
       {/* Footer */}

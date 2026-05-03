@@ -31,7 +31,7 @@ export default function CreateBookingScreen() {
     const ampm = h < 12 ? 'AM' : (h === 12 ? 'PM' : 'PM');
     const hDisplay = h <= 12 ? (h === 0 ? 12 : h) : h - 12;
     const h24 = h.toString().padStart(2, '0');
-    
+
     timeSlots.push({ id: `${h24}:00`, label: `${hDisplay}:00 ${ampm}` });
     if (h !== 20) {
       timeSlots.push({ id: `${h24}:30`, label: `${hDisplay}:30 ${ampm}` });
@@ -68,7 +68,7 @@ export default function CreateBookingScreen() {
       Alert.alert("Validation", "Please select a student for your visit");
       return false;
     }
-    
+
     // Strict Phone Validation: 10 digits starting with 0
     const phoneRegex = /^0\d{9}$/;
     if (!phoneRegex.test(phone)) {
@@ -90,7 +90,7 @@ export default function CreateBookingScreen() {
       Alert.alert("Validation", "Date must be a future date");
       return false;
     }
-    
+
     return true;
   };
 
@@ -139,30 +139,30 @@ export default function CreateBookingScreen() {
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={[T.title, { textAlign: "center" }]}>Create Booking</Text>
       <View style={[T.card, T.cardShadow]}>
-        
+
         <Text style={T.label}>Type of Visit</Text>
         <View style={{ flexDirection: 'row', marginBottom: 15, marginTop: 5 }}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.typeBtn, form.type === 'student_visit' && styles.typeBtnActive]}
-            onPress={() => setForm({...form, type: 'student_visit'})}
+            onPress={() => setForm({ ...form, type: 'student_visit' })}
           >
             <Text style={[styles.typeBtnText, form.type === 'student_visit' && styles.typeBtnTextActive]}>Student Visit</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.typeBtn, form.type === 'room_visit' && styles.typeBtnActive]}
-            onPress={() => setForm({...form, type: 'room_visit'})}
+            onPress={() => setForm({ ...form, type: 'room_visit' })}
           >
             <Text style={[styles.typeBtnText, form.type === 'room_visit' && styles.typeBtnTextActive]}>Room Visit</Text>
           </TouchableOpacity>
         </View>
 
         <Text style={T.label}>Visitor Name</Text>
-        <TextInput style={T.input} placeholder="John Doe" value={form.visitorName} onChangeText={t => setForm({ ...form, visitorName: t })} />
+        <TextInput style={T.input} placeholder="Kamal Perera" value={form.visitorName} onChangeText={t => setForm({ ...form, visitorName: t })} />
         <Text style={T.label}>Phone Number</Text>
         <TextInput style={T.input} placeholder="0712345678" keyboardType="phone-pad" maxLength={15} value={form.phone} onChangeText={t => setForm({ ...form, phone: t })} />
         <Text style={T.label}>NIC</Text>
-        <TextInput style={T.input} placeholder="123456789V" value={form.NIC} onChangeText={t => setForm({ ...form, NIC: t })} />
-        
+        <TextInput style={T.input} placeholder="200xxxxxxxxx" value={form.NIC} onChangeText={t => setForm({ ...form, NIC: t })} />
+
         {form.type === "student_visit" && (
           <>
             <Text style={T.label}>Select Student</Text>
@@ -218,14 +218,14 @@ export default function CreateBookingScreen() {
             <FlatList
               data={modalType === 'student' ? students : timeSlots}
               keyExtractor={(item) => modalType === 'student' ? item._id : item.id}
-              renderItem={({item}) => (
-                <TouchableOpacity 
+              renderItem={({ item }) => (
+                <TouchableOpacity
                   style={styles.modalItem}
                   onPress={() => {
                     if (modalType === 'student') {
-                      setForm({...form, studentId: item._id});
+                      setForm({ ...form, studentId: item._id });
                     } else {
-                      setForm({...form, time: item.id, timeLabel: item.label});
+                      setForm({ ...form, time: item.id, timeLabel: item.label });
                     }
                     setModalVisible(false);
                   }}
@@ -236,7 +236,7 @@ export default function CreateBookingScreen() {
                 </TouchableOpacity>
               )}
             />
-            <TouchableOpacity style={[T.primaryBtn, {marginTop: 15}]} onPress={() => setModalVisible(false)}>
+            <TouchableOpacity style={[T.primaryBtn, { marginTop: 15 }]} onPress={() => setModalVisible(false)}>
               <Text style={T.primaryBtnText}>Cancel</Text>
             </TouchableOpacity>
           </View>

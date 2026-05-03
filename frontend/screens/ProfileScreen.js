@@ -44,8 +44,21 @@ function InfoRow({ label, value, icon, color }) {
   );
 }
 
-function EditInput({ label, icon, value, onChangeText, placeholder, keyboardType, autoCapitalize }) {
-  const [focused, setFocused] = useState(false);
+// EditInput keeps its OWN local value state so that typing never propagates
+// a re-render up to ProfileScreen. The parent callback is held in a ref so
+// it never needs to be listed as a dependency and never causes re-renders.
+function EditInput({ label, icon, initialValue, onChangeText, placeholder, keyboardType, autoCapitalize }) {
+  const [localValue, setLocalValue] = useState(initialValue ?? "");
+  const [focused, setFocused]       = useState(false);
+  const cbRef = useRef(onChangeText);
+  // Keep ref current without triggering re-render
+  cbRef.current = onChangeText;
+
+  const handleChange = useRef((text) => {
+    setLocalValue(text);
+    cbRef.current?.(text);
+  }).current; // stable function reference, created once
+
   return (
     <View style={styles.editField}>
       <Text style={styles.editLabel}>{label}</Text>
@@ -53,8 +66,8 @@ function EditInput({ label, icon, value, onChangeText, placeholder, keyboardType
         <Ionicons name={icon} size={16} color={focused ? colors.primary : colors.textMuted} style={{ marginRight: 10 }} />
         <TextInput
           style={styles.editInput}
-          value={value}
-          onChangeText={onChangeText}
+          value={localValue}
+          onChangeText={handleChange}
           placeholder={placeholder}
           placeholderTextColor={colors.placeholder}
           keyboardType={keyboardType || "default"}
@@ -69,6 +82,7 @@ function EditInput({ label, icon, value, onChangeText, placeholder, keyboardType
 
 export default function ProfileScreen() {
   const [profile,   setProfile]   = useState({});
+  const [editData,  setEditData]  = useState({}); // isolated edit state – profile never changes while typing
   const [isEditing, setIsEditing] = useState(false);
   const [loading,   setLoading]   = useState(true);
   const [saving,    setSaving]    = useState(false);
@@ -109,7 +123,8 @@ export default function ProfileScreen() {
   const handleUpdate = async () => {
     setSaving(true);
     try {
-      await API.put("/users/profile", profile);
+      await API.put("/users/profile", editData);
+      setProfile(editData); // commit changes to profile only on successful save
       Alert.alert("Profile Updated ✓", "Your details have been saved.");
       setIsEditing(false);
     } catch (err) {
@@ -188,8 +203,8 @@ export default function ProfileScreen() {
                     label={f.label}
                     icon={f.icon}
                     placeholder={f.placeholder}
-                    value={profile[f.key] || ""}
-                    onChangeText={v => setProfile({ ...profile, [f.key]: v })}
+                    initialValue={editData[f.key] || ""}
+                    onChangeText={v => setEditData(prev => ({ ...prev, [f.key]: v }))}
                     keyboardType={f.keyboard}
                     autoCapitalize={f.capitalize}
                   />
@@ -211,7 +226,7 @@ export default function ProfileScreen() {
           {/* ── Action Buttons ── */}
           <View style={styles.actionArea}>
             {!isEditing ? (
-              <TouchableOpacity style={styles.editBtn} onPress={() => setIsEditing(true)} activeOpacity={0.88}>
+              <TouchableOpacity style={styles.editBtn} onPress={() => { setEditData({...profile}); setIsEditing(true); }} activeOpacity={0.88}>
                 <LinearGradient
                   colors={["#6C63FF", "#9B8FFF"]}
                   style={styles.editBtnGrad}
@@ -225,7 +240,7 @@ export default function ProfileScreen() {
               <View style={styles.editActions}>
                 <TouchableOpacity
                   style={styles.cancelBtn}
-                  onPress={() => { setIsEditing(false); fetchProfile(); }}
+                  onPress={() => { setIsEditing(false); }}
                 >
                   <Text style={styles.cancelBtnText}>Cancel</Text>
                 </TouchableOpacity>

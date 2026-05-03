@@ -2,12 +2,9 @@ import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from 'expo-constants';
 
-// Dynamically detect the debugger host's IP for local development
-const debuggerHost = Constants.expoConfig?.hostUri || Constants.manifest?.debuggerHost;
-const host = debuggerHost ? debuggerHost.split(':').shift() : '192.168.1.9';
-
+// Use the Railway production URL
 const API = axios.create({
-  baseURL: `http://${host}:5000/api`,
+  baseURL: "https://hostelapp-production-3c24.up.railway.app/api",
   timeout: 10000,
 });
 
