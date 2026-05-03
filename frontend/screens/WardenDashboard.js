@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 18, fontWeight: "bold", color: colors.textPrimary, marginBottom: 16, marginTop: 10 },
   
   statsGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", marginBottom: 10 },
-  statCardContainer: { width: "48%", marginBottom: 16 },
+  statCardContainer: { width: "48%", minWidth: 140, marginBottom: 16 },
   statCard: { 
     backgroundColor: colors.card, 
     borderRadius: 18, 
@@ -349,8 +349,8 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
 
-  navGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", gap: 12 },
-  navCardContainer: { flexBasis: "31%", marginBottom: 12 },
+  navGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" },
+  navCardContainer: { width: "31%", minWidth: 90, marginBottom: 16 },
   navCard: { 
     backgroundColor: colors.card, 
     paddingVertical: 18, 

@@ -372,8 +372,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 
-  statsGrid: { flexDirection: "row", justifyContent: "space-between", marginBottom: 30 },
-  statCardContainer: { width: "31%" },
+  statsGrid: { flexDirection: "row", justifyContent: "space-between", marginBottom: 30, gap: 12 },
+  statCardContainer: { flex: 1 },
   statCard: { 
     backgroundColor: colors.card, 
     borderRadius: 18, 
@@ -394,8 +394,8 @@ const styles = StyleSheet.create({
   statCount: { fontSize: 24, fontWeight: "bold", color: colors.textPrimary, marginBottom: 4 },
   statTitle: { fontSize: 11, fontWeight: "600", color: colors.textSecondary, textAlign: 'center' },
   
-  navGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", gap: 12 },
-  navCardContainer: { flexBasis: "31%", marginBottom: 12 },
+  navGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" },
+  navCardContainer: { width: "31%", minWidth: 90, marginBottom: 16 },
   navCard: { 
     backgroundColor: colors.card, 
     paddingVertical: 20, 

@@ -11,7 +11,10 @@ import {
   Animated,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator
+  ActivityIndicator,
+  SafeAreaView,
+  ScrollView,
+  Dimensions
 } from "react-native";
 import API from "../services/api";
 import { useRouter } from "expo-router";
@@ -19,6 +22,8 @@ import { AuthContext } from "../context/AuthContext";
 import { colors, T, createFadeSlide, createPressAnim } from "../theme";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+
+const { width, height } = Dimensions.get("window");
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -88,91 +93,99 @@ export default function LoginScreen() {
       <View style={styles.overlay} />
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.container}
-      >
-        <Animated.View style={[styles.logoContainer, { transform: [{ scale: logoScale }] }]}>
-          <LinearGradient
-            colors={[colors.primaryLight, colors.primaryDark]}
-            style={styles.logoCircle}
+      <SafeAreaView style={styles.safeArea}>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.keyboardView}
+        >
+          <ScrollView 
+            contentContainerStyle={styles.scrollContainer}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
           >
-            <Ionicons name="home" size={42} color="#fff" />
-          </LinearGradient>
-        </Animated.View>
+            <Animated.View style={[styles.logoContainer, { transform: [{ scale: logoScale }] }]}>
+              <LinearGradient
+                colors={[colors.primaryLight, colors.primaryDark]}
+                style={styles.logoCircle}
+              >
+                <Ionicons name="home" size={42} color="#fff" />
+              </LinearGradient>
+            </Animated.View>
 
-        <Animated.View style={[styles.glassCard, {
-          opacity: cardFade,
-          transform: [{ translateY: cardSlide }]
-        }]}>
-          <Text style={styles.title}>Welcome Back</Text>
-          <Text style={styles.subtitle}>Login to continue your journey</Text>
+            <Animated.View style={[styles.glassCard, {
+              opacity: cardFade,
+              transform: [{ translateY: cardSlide }]
+            }]}>
+              <Text style={styles.title}>Welcome Back</Text>
+              <Text style={styles.subtitle}>Login to continue your journey</Text>
 
-          <View style={styles.inputContainer}>
-            <View style={[styles.inputWrapper, focusedInput === 'email' && styles.inputFocused]}>
-              <Ionicons name="mail-outline" size={20} color={focusedInput === 'email' ? colors.primary : colors.textMuted} style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Enter your email"
-                placeholderTextColor={colors.placeholder}
-                value={email}
-                onChangeText={setEmail}
-                onFocus={() => setFocusedInput('email')}
-                onBlur={() => setFocusedInput(null)}
-                autoCapitalize="none"
-                keyboardType="email-address"
-              />
-            </View>
+              <View style={styles.inputContainer}>
+                <View style={[styles.inputWrapper, focusedInput === 'email' && styles.inputFocused]}>
+                  <Ionicons name="mail-outline" size={20} color={focusedInput === 'email' ? colors.primary : colors.textMuted} style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter your email"
+                    placeholderTextColor={colors.placeholder}
+                    value={email}
+                    onChangeText={setEmail}
+                    onFocus={() => setFocusedInput('email')}
+                    onBlur={() => setFocusedInput(null)}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                  />
+                </View>
 
-            <View style={[styles.inputWrapper, focusedInput === 'password' && styles.inputFocused]}>
-              <Ionicons name="lock-closed-outline" size={20} color={focusedInput === 'password' ? colors.primary : colors.textMuted} style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Enter your password"
-                placeholderTextColor={colors.placeholder}
-                value={password}
-                secureTextEntry={!showPassword}
-                onChangeText={setPassword}
-                onFocus={() => setFocusedInput('password')}
-                onBlur={() => setFocusedInput(null)}
-              />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
-                <Ionicons name={showPassword ? "eye-outline" : "eye-off-outline"} size={20} color={colors.textMuted} />
+                <View style={[styles.inputWrapper, focusedInput === 'password' && styles.inputFocused]}>
+                  <Ionicons name="lock-closed-outline" size={20} color={focusedInput === 'password' ? colors.primary : colors.textMuted} style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter your password"
+                    placeholderTextColor={colors.placeholder}
+                    value={password}
+                    secureTextEntry={!showPassword}
+                    onChangeText={setPassword}
+                    onFocus={() => setFocusedInput('password')}
+                    onBlur={() => setFocusedInput(null)}
+                  />
+                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+                    <Ionicons name={showPassword ? "eye-outline" : "eye-off-outline"} size={20} color={colors.textMuted} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <Animated.View style={{ transform: [{ scale: btnScale }] }}>
+                <TouchableOpacity 
+                  style={[T.primaryBtn, loading && { opacity: 0.7 }]} 
+                  onPress={handleLogin}
+                  onPressIn={handlePressIn}
+                  onPressOut={handlePressOut}
+                  disabled={loading}
+                  activeOpacity={1}
+                >
+                  {loading ? (
+                    <>
+                      <ActivityIndicator color="#fff" style={{ marginRight: 10 }} />
+                      <Text style={T.primaryBtnText}>Signing in...</Text>
+                    </>
+                  ) : (
+                    <Text style={T.primaryBtnText}>Login</Text>
+                  )}
+                </TouchableOpacity>
+              </Animated.View>
+
+              <View style={styles.dividerContainer}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>or</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              <TouchableOpacity style={styles.linkContainer} onPress={() => router.push("/(auth)/register")}>
+                <Text style={styles.registerText}>Don't have an account? <Text style={styles.registerTextBold}>Register</Text></Text>
               </TouchableOpacity>
-            </View>
-          </View>
-
-          <Animated.View style={{ transform: [{ scale: btnScale }] }}>
-            <TouchableOpacity 
-              style={[T.primaryBtn, loading && { opacity: 0.7 }]} 
-              onPress={handleLogin}
-              onPressIn={handlePressIn}
-              onPressOut={handlePressOut}
-              disabled={loading}
-              activeOpacity={1}
-            >
-              {loading ? (
-                <>
-                  <ActivityIndicator color="#fff" style={{ marginRight: 10 }} />
-                  <Text style={T.primaryBtnText}>Signing in...</Text>
-                </>
-              ) : (
-                <Text style={T.primaryBtnText}>Login</Text>
-              )}
-            </TouchableOpacity>
-          </Animated.View>
-
-          <View style={styles.dividerContainer}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          <TouchableOpacity style={styles.linkContainer} onPress={() => router.push("/(auth)/register")}>
-            <Text style={styles.registerText}>Don't have an account? <Text style={styles.registerTextBold}>Register</Text></Text>
-          </TouchableOpacity>
-        </Animated.View>
-      </KeyboardAvoidingView>
+            </Animated.View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
     </ImageBackground>
   );
 }
@@ -183,15 +196,22 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(10, 10, 15, 0.85)", // Stronger dark overlay
   },
-  container: {
+  safeArea: {
     flex: 1,
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  scrollContainer: {
+    flexGrow: 1,
     justifyContent: "center",
-    padding: 24,
-    backgroundColor: 'transparent',
+    alignItems: "center",
+    paddingHorizontal: "5%",
+    paddingVertical: "10%",
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: "8%", // Dynamic spacing
   },
   logoCircle: {
     width: 80,
@@ -210,8 +230,9 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255, 255, 255, 0.1)",
     borderWidth: 1,
     borderRadius: 24,
-    padding: 28,
+    padding: "8%", // Dynamic padding
     width: "100%",
+    maxWidth: 450, // Prevents card from getting too wide on tablets
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 20 },
     shadowOpacity: 0.5,
@@ -234,6 +255,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     marginBottom: 24,
     gap: 16,
+    width: "100%",
   },
   inputWrapper: {
     flexDirection: 'row',
@@ -243,6 +265,7 @@ const styles = StyleSheet.create({
     borderColor: colors.inputBorder,
     borderRadius: 14,
     paddingHorizontal: 16,
+    width: "100%",
   },
   inputFocused: {
     borderColor: colors.primary,
@@ -265,6 +288,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 24,
     marginBottom: 20,
+    width: "100%",
   },
   dividerLine: {
     flex: 1,
