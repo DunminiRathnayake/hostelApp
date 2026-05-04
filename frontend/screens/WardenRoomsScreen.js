@@ -12,11 +12,12 @@ export default function WardenRoomsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // New Room Form State
   const [newRoomNumber, setNewRoomNumber] = useState("");
-  const [newCapacity, setNewCapacity] = useState("");
+  const [newCapacity, setNewCapacity] = useState("2");
   const [newType, setNewType] = useState("Standard");
   const [suggestedRoom, setSuggestedRoom] = useState("");
+  const [isCapDropdownOpen, setIsCapDropdownOpen] = useState(false);
+  const CAPACITIES = ["1", "2", "3"];
 
   const [studentPickerVisible, setStudentPickerVisible] = useState(false);
   const [selectedRoomForAssign, setSelectedRoomForAssign] = useState(null);
@@ -58,8 +59,13 @@ export default function WardenRoomsScreen() {
   };
 
   const handleAddRoom = async () => {
+    const capNum = parseInt(newCapacity);
     if (!newRoomNumber || !newCapacity) {
       Alert.alert("Error", "Please fill in all fields");
+      return;
+    }
+    if (isNaN(capNum) || capNum < 1 || capNum > 3) {
+      Alert.alert("Error", "Capacity must be between 1 and 3");
       return;
     }
     try {
@@ -151,14 +157,29 @@ export default function WardenRoomsScreen() {
                 </View>
               ) : null}
             </View>
-            <View style={styles.inputCol}>
-              <TextInput
-                style={styles.input}
-                placeholder="Capacity"
-                value={newCapacity}
-                onChangeText={setNewCapacity}
-                keyboardType="numeric"
-              />
+            <View style={[styles.inputCol, { zIndex: 10 }]}>
+              <TouchableOpacity
+                style={[styles.input, { flexDirection: "row", justifyContent: "space-between", alignItems: "center" }]}
+                onPress={() => setIsCapDropdownOpen(!isCapDropdownOpen)}
+              >
+                <Text style={{ color: newCapacity ? colors.textPrimary : colors.placeholder }}>
+                  {newCapacity || "Capacity"}
+                </Text>
+                <Ionicons name={isCapDropdownOpen ? "chevron-up" : "chevron-down"} size={16} color={colors.textSecondary} />
+              </TouchableOpacity>
+              {isCapDropdownOpen && (
+                <View style={{ position: "absolute", top: 50, left: 0, right: 0, backgroundColor: colors.surface, borderRadius: 10, borderWidth: 1, borderColor: colors.cardBorder, zIndex: 100 }}>
+                  {CAPACITIES.map((cap) => (
+                    <TouchableOpacity
+                      key={cap}
+                      style={{ padding: 12, borderBottomWidth: cap === "3" ? 0 : 1, borderBottomColor: colors.cardBorder }}
+                      onPress={() => { setNewCapacity(cap); setIsCapDropdownOpen(false); }}
+                    >
+                      <Text style={{ color: newCapacity === cap ? colors.primary : colors.textPrimary }}>{cap}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
             </View>
           </View>
 

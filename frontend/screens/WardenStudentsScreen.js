@@ -59,21 +59,21 @@ export default function WardenStudentsScreen() {
     }
   }, [searchQuery, students]);
 
-  const handleRemove = (item) => {
+  const handleDelete = (item) => {
     Alert.alert(
-      "Remove Student",
-      `Are you sure you want to remove ${item.name}? They will be deactivated and removed from their room.`,
+      "Delete Student",
+      `Are you sure you want to permanently delete ${item.name}? This action cannot be undone.`,
       [
         { text: "Cancel", style: "cancel" },
         { 
-          text: "Remove", 
+          text: "Delete", 
           style: "destructive",
           onPress: async () => {
             try {
-              await API.put(`/users/deactivate/${item._id}`);
+              await API.delete(`/users/${item._id}`);
               fetchStudents();
             } catch(e) {
-              Alert.alert("Error", e.response?.data?.message || "Failed to deactivate student.");
+              Alert.alert("Error", e.response?.data?.message || "Failed to delete student.");
             }
           }
         }
@@ -143,11 +143,10 @@ export default function WardenStudentsScreen() {
                 <Text style={styles.editBtnText}>Edit Profile</Text>
               </TouchableOpacity>
               <TouchableOpacity 
-                style={[styles.removeBtn, { flex: 1, marginLeft: 8 }, item.isActive === false && {opacity: 0.5}]}
-                disabled={item.isActive === false}
-                onPress={() => handleRemove(item)}
+                style={[styles.removeBtn, { flex: 1, marginLeft: 8 }]}
+                onPress={() => handleDelete(item)}
               >
-                <Text style={styles.removeBtnText}>Remove</Text>
+                <Text style={styles.removeBtnText}>Delete</Text>
               </TouchableOpacity>
             </View>
           </View>

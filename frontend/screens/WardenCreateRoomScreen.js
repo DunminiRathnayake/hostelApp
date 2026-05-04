@@ -6,13 +6,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { colors, T } from "../theme";
 
 const ROOM_TYPES = ["Single", "Double", "Triple", "Dormitory"];
+const CAPACITIES = ["1", "2", "3"];
 
 export default function WardenCreateRoomScreen() {
   const router = useRouter();
   const [roomNumber, setRoomNumber] = useState("");
-  const [capacity, setCapacity] = useState("");
+  const [capacity, setCapacity] = useState("2");
   const [roomType, setRoomType] = useState("Double");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isCapDropdownOpen, setIsCapDropdownOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -39,8 +41,9 @@ export default function WardenCreateRoomScreen() {
 
   const handleCreate = async () => {
     if (!roomNumber.trim()) return Alert.alert("Missing Info", "Please enter a room number.");
-    if (!capacity || isNaN(parseInt(capacity)) || parseInt(capacity) < 1) {
-      return Alert.alert("Invalid Capacity", "Please enter a valid capacity (e.g. 2).");
+    const capNum = parseInt(capacity);
+    if (!capacity || isNaN(capNum) || capNum < 1 || capNum > 3) {
+      return Alert.alert("Invalid Capacity", "Please enter a valid capacity between 1 and 3.");
     }
 
     setIsSubmitting(true);
@@ -86,14 +89,30 @@ export default function WardenCreateRoomScreen() {
           />
 
           <Text style={[T.label, styles.label]}>CAPACITY (STUDENTS)</Text>
-          <TextInput
-            style={[T.input, styles.input]}
-            placeholder="e.g. 2"
-            placeholderTextColor={colors.placeholder}
-            value={capacity}
-            onChangeText={setCapacity}
-            keyboardType="numeric"
-          />
+          <View style={[styles.dropdownContainer, { zIndex: 11 }]}>
+            <TouchableOpacity
+              style={styles.dropdownHeader}
+              onPress={() => setIsCapDropdownOpen(!isCapDropdownOpen)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.dropdownHeaderText}>{capacity}</Text>
+              <Ionicons name={isCapDropdownOpen ? "chevron-up" : "chevron-down"} size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
+            {isCapDropdownOpen && (
+              <View style={styles.dropdownList}>
+                {CAPACITIES.map((cap, index) => (
+                  <TouchableOpacity
+                    key={cap}
+                    style={[styles.dropdownOption, index === CAPACITIES.length - 1 && { borderBottomWidth: 0 }]}
+                    onPress={() => { setCapacity(cap); setIsCapDropdownOpen(false); }}
+                  >
+                    <Text style={[styles.dropdownOptionText, capacity === cap && styles.dropdownOptionTextActive]}>{cap}</Text>
+                    {capacity === cap && <Ionicons name="checkmark" size={18} color={colors.primary} />}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
 
           <Text style={[T.label, styles.label]}>ROOM TYPE</Text>
           <View style={styles.dropdownContainer}>

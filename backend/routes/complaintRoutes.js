@@ -23,6 +23,6 @@ router.route('/:id/status')
   .put(protect, authorizeRoles('warden'), validate(updateComplaintStatusSchema), updateComplaintStatus);
 
 router.route('/:id')
-  .delete(protect, authorizeRoles('admin'), deleteComplaint);
+  .delete(protect, authorizeRoles('admin', 'warden'), deleteComplaint);
 
 export default router;
