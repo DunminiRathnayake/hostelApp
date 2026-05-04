@@ -6,8 +6,11 @@ import Room from '../models/Room.js';
 // @access  Public
 export const createBooking = async (req, res) => {
   try {
+    // Extract booking details from the request body
     const { visitorName, phone, NIC, type, studentId, date, time } = req.body;
 
+    // Create a new booking in the database
+    // Only associate a student ID if the visit type specifically targets a student
     const booking = await Booking.create({
       visitorName,
       phone,
@@ -29,11 +32,14 @@ export const createBooking = async (req, res) => {
 // @access  Private/Admin
 export const getBookings = async (req, res) => {
   try {
+    // Fetch all bookings and populate the associated student's name
+    // Sort the bookings by creation date (newest first)
     const bookings = await Booking.find({})
       .populate('studentId', 'name')
       .sort({ createdAt: -1 });
     
-    // Map data for the frontend
+    // Map the database documents to a frontend-friendly format
+    // Flatten the studentId object to just expose the studentName string
     const mappedBookings = bookings.map(b => ({
       ...b._doc,
       studentName: b.studentId ? b.studentId.name : null
@@ -63,12 +69,15 @@ export const getMyBookings = async (req, res) => {
 // @access  Public
 export const getBookingStatusPublic = async (req, res) => {
   try {
+    // Extract phone and NIC from query parameters for visitor authentication
     const { phone, NIC } = req.query;
     
+    // Validate that both required fields are present
     if (!phone || !NIC) {
       return res.status(400).json({ message: 'Phone and NIC are required' });
     }
 
+    // Find the most recent booking matching the visitor's credentials
     const bookings = await Booking.find({ phone, NIC })
       .populate('studentId', 'name')
       .sort({ createdAt: -1 })
@@ -113,9 +122,13 @@ export const getBookingById = async (req, res) => {
 // @access  Private/Admin
 export const updateBookingStatus = async (req, res) => {
   try {
+    // Extract the new status from the request body (e.g., 'approved' or 'rejected')
     const { status } = req.body;
+    
+    // Find the specific booking by its ID
     const booking = await Booking.findById(req.params.id);
 
+    // Return a 404 error if the booking does not exist
     if (!booking) {
       return res.status(404).json({ message: 'Booking not found' });
     }

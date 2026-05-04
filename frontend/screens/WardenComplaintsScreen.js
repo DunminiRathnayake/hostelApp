@@ -49,7 +49,8 @@ export default function WardenComplaintsScreen() {
               Alert.alert("Success", "Complaint deleted");
               fetchComplaints();
             } catch (err) {
-              Alert.alert("Error", "Could not delete complaint.");
+              const msg = err.response?.data?.message || err.message || "Unknown error";
+              Alert.alert("Error", `Could not delete complaint: ${msg}`);
             }
           }
         }

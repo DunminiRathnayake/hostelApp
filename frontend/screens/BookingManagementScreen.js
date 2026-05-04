@@ -10,10 +10,18 @@ import { Ionicons } from "@expo/vector-icons";
 export default function BookingManagementScreen() {
   const router = useRouter();
   const { user } = useContext(AuthContext);
+  
+  // State for storing the list of bookings fetched from the backend
   const [bookings, setBookings] = useState([]);
+  
+  // State to handle the initial full-page loading spinner
   const [loading, setLoading] = useState(true);
+  
+  // State to track which specific booking is currently being approved/rejected
+  // This prevents multiple clicks on the same button
   const [updatingId, setUpdatingId] = useState(null);
 
+  // Fetches all bookings from the backend API
   const fetchBookings = async () => {
     setLoading(true);
     try {
@@ -31,6 +39,8 @@ export default function BookingManagementScreen() {
     fetchBookings();
   }, []);
 
+  // Handles approving or rejecting a booking
+  // Sets updatingId to show a spinner on the specific button being pressed
   const updateStatus = async (id, status) => {
     setUpdatingId(id);
     try {
@@ -68,8 +78,11 @@ export default function BookingManagementScreen() {
     );
   };
 
+  // Renders a single booking card in the list
   const renderBooking = (b) => {
+    // Get corresponding UI colors and text for the current status
     const { badge, text } = getStatusBadge(b.status);
+    
     return (
       <View key={b._id} style={[T.card, T.cardShadow, styles.card]}>
         <View style={styles.rowHeader}>

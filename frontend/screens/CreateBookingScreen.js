@@ -9,22 +9,28 @@ import { Ionicons } from "@expo/vector-icons";
 
 export default function CreateBookingScreen() {
   const router = useRouter();
+  
+  // State for the entire booking form
   const [form, setForm] = useState({
     visitorName: "",
     phone: "",
     NIC: "",
-    type: "student_visit",
+    type: "student_visit", // Can be 'student_visit' or 'room_visit'
     studentId: "",
     date: "",
     time: "",
     timeLabel: "",
   });
+  
+  // State to hold the list of students available for visitation
   const [students, setStudents] = useState([]);
   const [loadingStudents, setLoadingStudents] = useState(true);
+  
+  // UI interaction states
   const [submitting, setSubmitting] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
-  const [modalType, setModalType] = useState(null);
+  const [modalType, setModalType] = useState(null); // 'student' or 'time'
 
   const timeSlots = [];
   for (let h = 8; h <= 20; h++) {
@@ -43,10 +49,11 @@ export default function CreateBookingScreen() {
     setModalVisible(true);
   };
 
-  // Load student list for dropdown (only for student visits)
+  // Load student list for dropdown (only required for 'student_visit' bookings)
   useEffect(() => {
     const fetchStudents = async () => {
       try {
+        // Fetch only publicly visible student data for visitor selection
         const res = await API.get("/users/public/students");
         setStudents(Array.isArray(res.data) ? res.data : (res.data.students || []));
       } catch (e) {
@@ -58,6 +65,7 @@ export default function CreateBookingScreen() {
     fetchStudents();
   }, []);
 
+  // Form validation before submission
   const validate = () => {
     const { visitorName, phone, NIC, type, studentId, date, time } = form;
     if (!visitorName || !phone || !NIC || !date || !time) {
@@ -94,8 +102,10 @@ export default function CreateBookingScreen() {
     return true;
   };
 
+  // Submits the booking request to the backend API
   const submit = async () => {
-    if (!validate()) return;
+    if (!validate()) return; // Prevent submission if validation fails
+    
     setSubmitting(true);
     try {
       const payload = {
@@ -103,13 +113,14 @@ export default function CreateBookingScreen() {
         phone: form.phone,
         NIC: form.NIC,
         type: form.type,
+        // Only attach studentId if the user explicitly requested a student visit
         studentId: form.type === "student_visit" ? form.studentId : undefined,
         date: form.date,
         time: form.time,
       };
       await API.post("/bookings", payload);
       Alert.alert("Success", "Booking created successfully");
-      router.replace("/(app)/(tabs)");
+      router.replace("/(app)/(tabs)"); // Navigate back on success
     } catch (e) {
       console.log(e);
       Alert.alert("Error", e.response?.data?.message || e.message);
