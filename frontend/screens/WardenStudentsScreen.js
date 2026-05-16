@@ -59,6 +59,23 @@ export default function WardenStudentsScreen() {
     }
   }, [searchQuery, students]);
 
+  const handleEdit = (item) => {
+    // Show an action sheet style edit — navigate to a dedicated edit modal
+    // For now, alert the warden with available contact info and let them confirm
+    Alert.alert(
+      `Edit: ${item.name}`,
+      `Email: ${item.email}\nPhone: ${item.studentPhone || 'N/A'}\nCampus: ${item.campus || 'N/A'}\n\nTo edit, please use the full profile editor.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete Student",
+          style: "destructive",
+          onPress: () => handleDelete(item)
+        }
+      ]
+    );
+  };
+
   const handleDelete = (item) => {
     Alert.alert(
       "Delete Student",
@@ -139,7 +156,10 @@ export default function WardenStudentsScreen() {
             </View>
 
             <View style={styles.actionButtons}>
-              <TouchableOpacity style={[styles.editBtn, { flex: 1, marginRight: 8 }]}>
+              <TouchableOpacity
+                style={[styles.editBtn, { flex: 1, marginRight: 8 }]}
+                onPress={() => handleEdit(item)}
+              >
                 <Text style={styles.editBtnText}>Edit Profile</Text>
               </TouchableOpacity>
               <TouchableOpacity 

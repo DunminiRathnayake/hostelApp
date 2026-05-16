@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Alert, TextInput, Platform, SafeAreaView, Animated, StatusBar,
+  Alert, TextInput, Platform, Image, SafeAreaView, Animated, StatusBar,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import API from "../services/api";
@@ -150,13 +150,23 @@ function PaymentForm({ onSubmitted }) {
 
       <Text style={T.label}>RECEIPT IMAGE</Text>
       <TouchableOpacity style={[styles.uploadArea, slip && styles.uploadAreaDone]} onPress={pickImage}>
-        <View style={[styles.uploadIconRing, { backgroundColor: slip ? colors.successBg : colors.primaryGlow }]}>
-          <Ionicons name={slip ? "checkmark-circle" : "cloud-upload-outline"} size={28} color={slip ? colors.success : colors.primary} />
-        </View>
-        <Text style={[styles.uploadTitle, { color: slip ? colors.success : colors.textSecondary }]}>
-          {slip ? "Receipt attached!" : "Tap to upload receipt"}
-        </Text>
-        <Text style={styles.uploadSub}>{slip ? "Tap to replace" : "JPG, PNG accepted"}</Text>
+        {slip ? (
+          <View style={styles.slipPreviewWrap}>
+            <Image source={{ uri: slip.uri }} style={styles.slipPreview} resizeMode="cover" />
+            <View style={styles.slipOverlay}>
+              <Ionicons name="checkmark-circle" size={22} color={colors.success} />
+              <Text style={styles.slipOverlayText}>Tap to replace</Text>
+            </View>
+          </View>
+        ) : (
+          <>
+            <View style={[styles.uploadIconRing, { backgroundColor: colors.primaryGlow }]}>
+              <Ionicons name="cloud-upload-outline" size={28} color={colors.primary} />
+            </View>
+            <Text style={[styles.uploadTitle, { color: colors.textSecondary }]}>Tap to upload receipt</Text>
+            <Text style={styles.uploadSub}>JPG, PNG accepted</Text>
+          </>
+        )}
       </TouchableOpacity>
 
       <TouchableOpacity style={[styles.submitBtn, submitting && { opacity: 0.75 }]} onPress={upload} disabled={submitting} activeOpacity={0.88}>
@@ -383,4 +393,14 @@ const styles = StyleSheet.create({
   },
   emptyTitle: { fontSize: 17, fontWeight: "700", color: colors.textPrimary, marginBottom: 6 },
   emptyText: { fontSize: 14, color: colors.textSecondary, textAlign: "center" },
+
+  // Slip image thumbnail preview
+  slipPreviewWrap: { width: "100%", borderRadius: 14, overflow: "hidden", position: "relative" },
+  slipPreview: { width: "100%", height: 160, borderRadius: 14 },
+  slipOverlay: {
+    position: "absolute", bottom: 0, left: 0, right: 0,
+    backgroundColor: "rgba(0,0,0,0.55)", flexDirection: "row",
+    alignItems: "center", justifyContent: "center", gap: 7, paddingVertical: 10,
+  },
+  slipOverlayText: { color: "#fff", fontWeight: "600", fontSize: 13 },
 });
