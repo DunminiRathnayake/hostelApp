@@ -32,7 +32,9 @@ class PaymentService {
   }
 
   async getMyPayments(userId) {
-    return await Payment.find({ user: userId }).sort({ createdAt: -1 });
+    return await Payment.find({ user: userId })
+      .populate('user', 'name email')
+      .sort({ createdAt: -1 });
   }
 
   async updatePayment(paymentId, updateData) {

@@ -81,11 +81,21 @@ function EditInput({ label, icon, initialValue, onChangeText, placeholder, keybo
 }
 
 export default function ProfileScreen() {
-  const [profile,   setProfile]   = useState({});
-  const [editData,  setEditData]  = useState({}); // isolated edit state – profile never changes while typing
-  const [isEditing, setIsEditing] = useState(false);
-  const [loading,   setLoading]   = useState(true);
-  const [saving,    setSaving]    = useState(false);
+  const [profile,    setProfile]   = useState({});
+  const [editData,   setEditData]  = useState({});
+  const [isEditing,  setIsEditing] = useState(false);
+  const [loading,    setLoading]   = useState(true);
+  const [saving,     setSaving]    = useState(false);
+
+  // Change password state
+  const [showPwdSection, setShowPwdSection] = useState(false);
+  const [currentPwd,  setCurrentPwd]  = useState("");
+  const [newPwd,      setNewPwd]      = useState("");
+  const [confirmPwd,  setConfirmPwd]  = useState("");
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew,     setShowNew]     = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [changingPwd, setChangingPwd] = useState(false);
 
   const avatarAnim  = useRef(new Animated.Value(0)).current;
   const contentAnim = useRef(new Animated.Value(0)).current;
@@ -114,7 +124,7 @@ export default function ProfileScreen() {
       const res = await API.get("/users/profile");
       setProfile(res.data);
     } catch (err) {
-      console.log(err);
+      Alert.alert("Error", "Could not load profile. Please check your connection.");
     } finally {
       setLoading(false);
     }
@@ -124,13 +134,39 @@ export default function ProfileScreen() {
     setSaving(true);
     try {
       await API.put("/users/profile", editData);
-      setProfile(editData); // commit changes to profile only on successful save
+      setProfile(prev => ({ ...prev, ...editData }));
       Alert.alert("Profile Updated ✓", "Your details have been saved.");
       setIsEditing(false);
     } catch (err) {
       Alert.alert("Update Failed", err.response?.data?.message || err.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!currentPwd || !newPwd || !confirmPwd) {
+      Alert.alert("Required", "Please fill in all password fields.");
+      return;
+    }
+    if (newPwd.length < 6) {
+      Alert.alert("Too Short", "New password must be at least 6 characters.");
+      return;
+    }
+    if (newPwd !== confirmPwd) {
+      Alert.alert("Mismatch", "New passwords do not match.");
+      return;
+    }
+    setChangingPwd(true);
+    try {
+      await API.put("/users/change-password", { currentPassword: currentPwd, newPassword: newPwd });
+      Alert.alert("Password Changed ✓", "Your password has been updated.");
+      setCurrentPwd(""); setNewPwd(""); setConfirmPwd("");
+      setShowPwdSection(false);
+    } catch (err) {
+      Alert.alert("Failed", err.response?.data?.message || err.message);
+    } finally {
+      setChangingPwd(false);
     }
   };
 
@@ -268,6 +304,65 @@ export default function ProfileScreen() {
               </View>
             )}
           </View>
+          {/* ── Change Password Card ── */}
+          <TouchableOpacity
+            style={styles.pwdToggleBtn}
+            onPress={() => setShowPwdSection(o => !o)}
+            activeOpacity={0.8}
+          >
+            <View style={styles.pwdToggleLeft}>
+              <View style={[styles.sectionIcon, { backgroundColor: "rgba(245,158,11,0.12)", marginRight: 10 }]}>
+                <Ionicons name="lock-closed-outline" size={16} color={colors.warning} />
+              </View>
+              <Text style={styles.pwdToggleText}>Change Password</Text>
+            </View>
+            <Ionicons name={showPwdSection ? "chevron-up" : "chevron-down"} size={18} color={colors.textMuted} />
+          </TouchableOpacity>
+
+          {showPwdSection && (
+            <View style={styles.pwdCard}>
+              {[
+                { label: "CURRENT PASSWORD", value: currentPwd, setter: setCurrentPwd, show: showCurrent, toggle: setShowCurrent },
+                { label: "NEW PASSWORD",     value: newPwd,     setter: setNewPwd,     show: showNew,     toggle: setShowNew     },
+                { label: "CONFIRM NEW PASSWORD", value: confirmPwd, setter: setConfirmPwd, show: showConfirm, toggle: setShowConfirm },
+              ].map(({ label, value, setter, show, toggle }) => (
+                <View key={label} style={styles.editField}>
+                  <Text style={styles.editLabel}>{label}</Text>
+                  <View style={styles.editInputWrap}>
+                    <Ionicons name="lock-closed-outline" size={16} color={colors.textMuted} style={{ marginRight: 10 }} />
+                    <TextInput
+                      style={[styles.editInput, { flex: 1 }]}
+                      value={value}
+                      onChangeText={setter}
+                      secureTextEntry={!show}
+                      placeholder="••••••••"
+                      placeholderTextColor={colors.placeholder}
+                      autoCapitalize="none"
+                    />
+                    <TouchableOpacity onPress={() => toggle(s => !s)} style={{ padding: 4 }}>
+                      <Ionicons name={show ? "eye-off-outline" : "eye-outline"} size={18} color={colors.textMuted} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+              <TouchableOpacity
+                style={[styles.savePwdBtn, changingPwd && { opacity: 0.75 }]}
+                onPress={handleChangePassword}
+                disabled={changingPwd}
+                activeOpacity={0.88}
+              >
+                <LinearGradient colors={["#f59e0b", "#d97706"]} style={styles.savePwdGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                  {changingPwd
+                    ? <ActivityIndicator size="small" color="#fff" />
+                    : <>
+                        <Ionicons name="key-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
+                        <Text style={styles.savePwdText}>Update Password</Text>
+                      </>
+                  }
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          )}
         </Animated.View>
 
         <View style={{ height: 30 }} />
@@ -356,4 +451,24 @@ const styles = StyleSheet.create({
   saveBtn: { flex: 2, borderRadius: 16, overflow: "hidden" },
   saveBtnGrad: { paddingVertical: 16, flexDirection: "row", alignItems: "center", justifyContent: "center" },
   saveBtnText: { color: "#fff", fontWeight: "800", fontSize: 16 },
+
+  // Change password section
+  pwdToggleBtn: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    marginHorizontal: 20, marginTop: 8, marginBottom: 2,
+    backgroundColor: colors.card, borderRadius: 16,
+    borderWidth: 1, borderColor: colors.cardBorder,
+    padding: 16,
+  },
+  pwdToggleLeft: { flexDirection: "row", alignItems: "center" },
+  pwdToggleText: { fontSize: 15, fontWeight: "700", color: colors.textPrimary },
+  pwdCard: {
+    marginHorizontal: 20, marginBottom: 14,
+    backgroundColor: colors.card, borderRadius: 16,
+    borderWidth: 1, borderColor: "rgba(245,158,11,0.25)",
+    padding: 18,
+  },
+  savePwdBtn: { borderRadius: 14, overflow: "hidden", marginTop: 4 },
+  savePwdGrad: { paddingVertical: 15, flexDirection: "row", alignItems: "center", justifyContent: "center" },
+  savePwdText: { color: "#fff", fontWeight: "800", fontSize: 15 },
 });

@@ -125,3 +125,37 @@ export const getMyQR = asyncHandler(async (req, res) => {
 
   res.json({ token, qrImage: null });
 });
+
+// @desc    Change logged-in user's password
+// @route   PUT /api/users/change-password
+// @access  Private
+export const changePassword = asyncHandler(async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+
+  if (!currentPassword || !newPassword) {
+    res.status(400);
+    throw new Error('Both current and new password are required');
+  }
+  if (newPassword.length < 6) {
+    res.status(400);
+    throw new Error('New password must be at least 6 characters');
+  }
+
+  // Fetch user WITH password field (normally excluded by select('-password'))
+  const user = await User.findById(req.user._id);
+  if (!user) {
+    res.status(404);
+    throw new Error('User not found');
+  }
+
+  const isMatch = await user.comparePassword(currentPassword);
+  if (!isMatch) {
+    res.status(401);
+    throw new Error('Current password is incorrect');
+  }
+
+  user.password = newPassword; // pre-save hook will hash it automatically
+  await user.save();
+
+  res.json({ message: 'Password changed successfully' });
+});

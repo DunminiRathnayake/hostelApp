@@ -9,7 +9,8 @@ import {
   getStudents,
   deactivateUser,
   getMyQR,
-  getPublicStudents
+  getPublicStudents,
+  changePassword
 } from '../controllers/userController.js';
 import { protect, wardenOnly } from '../middleware/authMiddleware.js';
 
@@ -31,6 +32,9 @@ router.route('/my-qr')
 router.route('/profile')
   .get(protect, getUserProfile)
   .put(protect, updateUserProfile);
+
+router.route('/change-password')
+  .put(protect, changePassword);
 
 router.route('/:id')
   .get(protect, wardenOnly, getUserById)

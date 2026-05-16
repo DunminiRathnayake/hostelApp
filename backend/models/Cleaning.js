@@ -40,5 +40,11 @@ const cleaningSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
+// Prevent duplicate tasks: same area, date, and room cannot appear twice in a single day
+cleaningSchema.index(
+  { area: 1, date: 1, assignedRoom: 1, type: 1 },
+  { unique: true, sparse: true, name: 'no_duplicate_daily_tasks' }
+);
+
 const Cleaning = mongoose.model('Cleaning', cleaningSchema);
 export default Cleaning;

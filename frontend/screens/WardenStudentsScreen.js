@@ -12,14 +12,20 @@ const getAvatarColor = (name = "") => {
   return AVATAR_COLORS[idx];
 };
 
+const PAGE_SIZE = 10;
+
 export default function WardenStudentsScreen() {
   const router = useRouter();
-  const [students, setStudents] = useState([]);
+  const [students,         setStudents]         = useState([]);
   const [filteredStudents, setFilteredStudents] = useState([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [expandedId, setExpandedId] = useState(null);
+  const [searchQuery,      setSearchQuery]      = useState("");
+  const [loading,          setLoading]          = useState(true);
+  const [refreshing,       setRefreshing]       = useState(false);
+  const [expandedId,       setExpandedId]       = useState(null);
+  const [page,             setPage]             = useState(0);
+
+  const totalPages    = Math.max(1, Math.ceil(filteredStudents.length / PAGE_SIZE));
+  const pagedStudents = filteredStudents.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   const toggleExpand = (id) => {
     setExpandedId(prev => prev === id ? null : id);
@@ -30,8 +36,9 @@ export default function WardenStudentsScreen() {
       const res = await API.get("/users/students");
       setStudents(res.data);
       setFilteredStudents(res.data);
+      setPage(0);
     } catch (err) {
-      console.log("Students fetch error:", err);
+      // silently handled
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -49,14 +56,15 @@ export default function WardenStudentsScreen() {
   useEffect(() => {
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      setFilteredStudents(students.filter(s => 
-        (s.name && s.name.toLowerCase().includes(q)) ||
+      setFilteredStudents(students.filter(s =>
+        (s.name  && s.name.toLowerCase().includes(q))  ||
         (s.email && s.email.toLowerCase().includes(q)) ||
         (s.assignedRoom && s.assignedRoom.toString().includes(q))
       ));
     } else {
       setFilteredStudents(students);
     }
+    setPage(0); // reset to first page whenever search changes
   }, [searchQuery, students]);
 
   const handleEdit = (item) => {
@@ -199,19 +207,42 @@ export default function WardenStudentsScreen() {
           {loading ? (
             <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
           ) : (
-            <FlatList
-              data={filteredStudents}
-              keyExtractor={(i) => i._id}
-              renderItem={renderItem}
-              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
-              ListEmptyComponent={
-                <View style={styles.emptyState}>
-                  <Ionicons name="people-outline" size={48} color={colors.textMuted} />
-                  <Text style={styles.emptyText}>No students found.</Text>
+            <>
+              <FlatList
+                data={pagedStudents}
+                keyExtractor={(i) => i._id}
+                renderItem={renderItem}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+                ListEmptyComponent={
+                  <View style={styles.emptyState}>
+                    <Ionicons name="people-outline" size={48} color={colors.textMuted} />
+                    <Text style={styles.emptyText}>No students found.</Text>
+                  </View>
+                }
+                contentContainerStyle={{ paddingBottom: 10 }}
+              />
+              {filteredStudents.length > PAGE_SIZE && (
+                <View style={styles.pagination}>
+                  <TouchableOpacity
+                    style={[styles.pageBtn, page === 0 && styles.pageBtnDisabled]}
+                    onPress={() => setPage(p => Math.max(0, p - 1))}
+                    disabled={page === 0}
+                  >
+                    <Ionicons name="chevron-back" size={18} color={page === 0 ? colors.textMuted : colors.primary} />
+                    <Text style={[styles.pageBtnText, page === 0 && { color: colors.textMuted }]}>Prev</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.pageInfo}>Page {page + 1} of {totalPages}</Text>
+                  <TouchableOpacity
+                    style={[styles.pageBtn, page >= totalPages - 1 && styles.pageBtnDisabled]}
+                    onPress={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+                    disabled={page >= totalPages - 1}
+                  >
+                    <Text style={[styles.pageBtnText, page >= totalPages - 1 && { color: colors.textMuted }]}>Next</Text>
+                    <Ionicons name="chevron-forward" size={18} color={page >= totalPages - 1 ? colors.textMuted : colors.primary} />
+                  </TouchableOpacity>
                 </View>
-              }
-              contentContainerStyle={{ paddingBottom: 40 }}
-            />
+              )}
+            </>
           )}
         </View>
       </View>
@@ -270,4 +301,18 @@ const styles = StyleSheet.create({
 
   emptyState: { alignItems: "center", paddingVertical: 60 },
   emptyText: { color: colors.textSecondary, marginTop: 14, fontSize: 15 },
+
+  // Pagination controls
+  pagination: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    paddingVertical: 14, paddingHorizontal: 4, borderTopWidth: 1, borderTopColor: colors.cardBorder,
+  },
+  pageBtn: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    paddingVertical: 8, paddingHorizontal: 16, borderRadius: 10,
+    backgroundColor: colors.card, borderWidth: 1, borderColor: colors.cardBorder,
+  },
+  pageBtnDisabled: { opacity: 0.4 },
+  pageBtnText: { color: colors.primary, fontWeight: "700", fontSize: 14 },
+  pageInfo: { fontSize: 13, color: colors.textSecondary, fontWeight: "600" },
 });
