@@ -10,7 +10,8 @@ export const createPaymentSchema = Joi.object({
     'string.empty': 'Category is required'
   }),
   description: Joi.string().optional().allow(''),
-  paymentType: Joi.string().valid('cash', 'card', 'bank_transfer', 'online').default('cash')
+  paymentType: Joi.string().valid('cash', 'card', 'bank_transfer', 'online').default('cash'),
+  month: Joi.string().optional().allow('')
 });
 
 export const updatePaymentStatusSchema = Joi.object({

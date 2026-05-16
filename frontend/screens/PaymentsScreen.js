@@ -196,44 +196,6 @@ export default function PaymentsScreen() {
     }
   };
 
-  const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.7 });
-    if (!result.canceled) setSlip(result.assets[0]);
-  };
-
-  const uploadReceipt = async () => {
-    if (!amount || !category || !slip) {
-      Alert.alert("Required Fields", "Please enter the amount, select a type, and attach your receipt.");
-      return;
-    }
-    let dbCategory = "other";
-    if (category === "Monthly Rent") dbCategory = "monthly";
-    if (category === "Key Money")    dbCategory = "key_money";
-
-    setSubmitting(true);
-    try {
-      const formData = new FormData();
-      formData.append("amount", amount);
-      formData.append("category", dbCategory);
-      if (category === "Other") formData.append("description", "other payment");
-      formData.append("paymentType", "bank_transfer");
-      formData.append("slipImage", {
-        uri: Platform.OS === "ios" ? slip.uri.replace("file://", "") : slip.uri,
-        name: "slip.jpg",
-        type: slip.mimeType || "image/jpeg",
-      });
-      await API.post("/payments", formData, { headers: { "Content-Type": "multipart/form-data" } });
-      Alert.alert("Payment Submitted ✓", "Your receipt is pending warden approval.");
-      setAmount(""); setCategory("Monthly Rent"); setSlip(null); setDropOpen(false);
-      fetchPayments();
-    } catch (err) {
-      const errorMsg = err.response?.data?.errors?.join("\n") || err.response?.data?.message || err.message;
-      Alert.alert("Upload Error", errorMsg);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   return (
     <SafeAreaView style={[T.screen, { flex: 1 }]}>
       <StatusBar barStyle="light-content" />

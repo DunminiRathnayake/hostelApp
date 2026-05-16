@@ -108,7 +108,7 @@ export default function DashboardScreen() {
     try {
       const userData = await AsyncStorage.getItem("user");
       if (userData) setUser(JSON.parse(userData));
-      const res = await API.get("/cleaning/student");
+      const res = await API.get("/cleaning/student-tasks");
       setCleaningTask(res.data?.length > 0 ? res.data[0] : null);
     } catch {
       setCleaningTask(null);
