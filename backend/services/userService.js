@@ -59,7 +59,13 @@ class UserService {
       throw error;
     }
 
-    Object.assign(user, updateData);
+    // Whitelist allowed fields — prevent role escalation or password tampering
+    const ALLOWED_FIELDS = ['name', 'campus', 'studentPhone', 'emergencyContactName', 'emergencyPhone'];
+    const filtered = Object.fromEntries(
+      Object.entries(updateData).filter(([k]) => ALLOWED_FIELDS.includes(k))
+    );
+
+    Object.assign(user, filtered);
     return await user.save();
   }
 
@@ -70,6 +76,11 @@ class UserService {
       error.status = 404;
       throw error;
     }
+    // Remove student from any room they are assigned to, fix occupancy count
+    await Room.updateMany(
+      { students: userId },
+      { $pull: { students: userId }, $inc: { currentOccupancy: -1 } }
+    );
     await user.deleteOne();
     return true;
   }

@@ -19,9 +19,9 @@ export const createComplaintSchema = Joi.object({
     'string.min': 'Title must be at least 3 characters long',
     'string.max': 'Title must not exceed 100 characters'
   }),
-  description: Joi.string().trim().min(10).required().messages({
+  description: Joi.string().trim().min(5).required().messages({
     'string.empty': 'Description is required',
-    'string.min': 'Description must be at least 10 characters long to provide enough detail'
+    'string.min': 'Description must be at least 5 characters long'
   })
 });
 

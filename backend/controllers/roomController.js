@@ -45,7 +45,6 @@ export const deleteRoom = asyncHandler(async (req, res) => {
 // @route   POST /api/rooms/allocate
 // @access  Private/Admin
 export const allocateRoom = asyncHandler(async (req, res) => {
-  console.log('[allocateRoom] req.body =', req.body);
   const { studentId, roomId } = req.body;
   const room = await roomService.allocateStudent(roomId, studentId);
   res.json({ message: 'Student allocated successfully', room });

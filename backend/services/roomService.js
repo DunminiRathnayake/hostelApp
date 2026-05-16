@@ -1,4 +1,5 @@
 import Room from '../models/Room.js';
+import Cleaning from '../models/Cleaning.js';
 
 class RoomService {
   async createRoom(roomData) {
@@ -43,6 +44,8 @@ class RoomService {
       error.status = 404;
       throw error;
     }
+    // Cascade: remove cleaning tasks referencing this room
+    await Cleaning.deleteMany({ assignedRoom: roomId });
     await room.deleteOne();
     return true;
   }

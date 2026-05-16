@@ -152,7 +152,7 @@ export const cancelBooking = async (req, res) => {
       return res.status(404).json({ message: 'Booking not found' });
     }
 
-    booking.status = 'rejected'; // Or cancelled
+    booking.status = 'cancelled';
     const updatedBooking = await booking.save();
     res.json(updatedBooking);
   } catch (error) {

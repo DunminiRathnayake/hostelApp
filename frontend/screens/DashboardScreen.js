@@ -84,6 +84,7 @@ function StatCard({ icon, value, label, color, delay }) {
 export default function DashboardScreen() {
   const [user, setUser]               = useState(null);
   const [cleaningTask, setCleaningTask] = useState(undefined);
+  const [stats, setStats]             = useState({ pendingAmount: 0, checkins: 0, latestRating: null });
   const router                        = useRouter();
 
   const headerAnim    = useRef(new Animated.Value(0)).current;
@@ -108,8 +109,12 @@ export default function DashboardScreen() {
     try {
       const userData = await AsyncStorage.getItem("user");
       if (userData) setUser(JSON.parse(userData));
-      const res = await API.get("/cleaning/student-tasks");
-      setCleaningTask(res.data?.length > 0 ? res.data[0] : null);
+      const [cleaningRes, statsRes] = await Promise.all([
+        API.get("/cleaning/student-tasks"),
+        API.get("/dashboard/student-stats")
+      ]);
+      setCleaningTask(cleaningRes.data?.length > 0 ? cleaningRes.data[0] : null);
+      setStats(statsRes.data);
     } catch {
       setCleaningTask(null);
     }
@@ -174,9 +179,9 @@ export default function DashboardScreen() {
 
         {/* ── Stat Row ── */}
         <View style={styles.statRow}>
-          <StatCard icon="card-outline"       value="LKR 9,500" label="Due This Month" color={colors.warning} delay={150} />
-          <StatCard icon="checkmark-circle-outline" value="12"  label="Check-Ins"      color={colors.success} delay={220} />
-          <StatCard icon="star-outline"       value="4.8"       label="Your Rating"    color={colors.primary} delay={290} />
+          <StatCard icon="card-outline"            value={stats.pendingAmount > 0 ? `LKR ${stats.pendingAmount.toLocaleString()}` : "Cleared"} label="Due This Month"  color={colors.warning} delay={150} />
+          <StatCard icon="checkmark-circle-outline" value={String(stats.checkins)}                                                            label="Check-Ins"      color={colors.success} delay={220} />
+          <StatCard icon="star-outline"             value={stats.latestRating !== null ? stats.latestRating.toFixed(1) : "N/A"}               label="Your Rating"    color={colors.primary} delay={290} />
         </View>
 
         {/* ── Cleaning Card ── */}

@@ -1,10 +1,13 @@
 import express from 'express';
-import { getDashboardStats } from '../controllers/dashboardController.js';
+import { getDashboardStats, getStudentStats } from '../controllers/dashboardController.js';
 import { protect, wardenOnly } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-// Route restricted to Admins
+// Warden-only aggregate stats
 router.get('/stats', protect, wardenOnly, getDashboardStats);
+
+// Student-specific live stats
+router.get('/student-stats', protect, getStudentStats);
 
 export default router;
