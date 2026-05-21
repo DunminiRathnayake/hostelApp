@@ -124,7 +124,9 @@ export default function ProfileScreen() {
       const res = await API.get("/users/profile");
       setProfile(res.data);
     } catch (err) {
-      Alert.alert("Error", "Could not load profile. Please check your connection.");
+      if (err.response?.status !== 401) {
+        Alert.alert("Error", err.response?.data?.message || err.message || "Could not load profile. Please check your connection.");
+      }
     } finally {
       setLoading(false);
     }

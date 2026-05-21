@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { registerLogoutCallback } from "../services/api";
 
 export const AuthContext = createContext();
 
@@ -10,6 +11,10 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     loadContext();
+    registerLogoutCallback(() => {
+      setToken(null);
+      setUser(null);
+    });
   }, []);
 
   const loadContext = async () => {
