@@ -46,9 +46,9 @@ export default function Home() {
   if (userRole === "student") {
     return <StudentDashboard user={userData} />;
   } else if (userRole === "warden") {
-    return <WardenDashboard user={userData} />
+    return <WardenDashboard user={userData} />;
   } else if (userRole === "visitor") {
-    return <VisitorDashboard user={userData} />
+    return <VisitorDashboard />;
   } else {
     // Fallback if role is unknown
     return (
